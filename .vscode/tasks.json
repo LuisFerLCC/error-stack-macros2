@@ -1,0 +1,214 @@
+{
+	"version": "2.0.0",
+
+	"tasks": [
+		{
+			"label": "Cargo: Watch Mode",
+			"icon": {
+				"id": "search",
+				"color": "terminal.ansiYellow"
+			},
+
+			"type": "shell",
+			"command": "cargo watch -c -x run",
+
+			"isBackground": true,
+			"presentation": {
+				"echo": false,
+				"panel": "dedicated",
+				"showReuseMessage": false
+			},
+
+			"problemMatcher": [
+				{
+					"base": "$rust-panic",
+
+					"pattern": [
+						{
+							"regexp": "^thread '.*' panicked at (.*):(\\d*):(\\d*):$",
+							"file": 1,
+							"line": 2,
+							"column": 3
+						},
+						{
+							"regexp": "(.*)",
+							"message": 1
+						}
+					],
+
+					"background": {
+						"beginsPattern": "^\\[Running\\b",
+						"endsPattern": "^\\[Finished running\\b"
+					}
+				}
+			]
+		},
+
+		{
+			"label": "Cargo: Create development build",
+			"icon": {
+				"id": "archive",
+				"color": "terminal.ansiYellow"
+			},
+
+			"type": "shell",
+			"command": "cargo build",
+
+			"isBackground": false,
+			"presentation": {
+				"echo": false,
+				"panel": "dedicated",
+				"showReuseMessage": false
+			},
+
+			"problemMatcher": []
+		},
+
+		{
+			"label": "Cargo: Create production build",
+			"icon": {
+				"id": "archive",
+				"color": "terminal.ansiGreen"
+			},
+
+			"type": "shell",
+			"command": "cargo build -r",
+
+			"isBackground": false,
+			"presentation": {
+				"echo": false,
+				"panel": "dedicated",
+				"showReuseMessage": false
+			},
+
+			"problemMatcher": []
+		},
+
+		{
+			"label": "Cargo: Test",
+			"icon": {
+				"id": "beaker",
+				"color": "terminal.ansiYellow"
+			},
+
+			"type": "shell",
+			"command": "cargo watch -c -x test",
+
+			"isBackground": true,
+			"presentation": {
+				"echo": false,
+				"panel": "dedicated",
+				"showReuseMessage": false
+			},
+
+			"problemMatcher": [
+				{
+					"base": "$rust-panic",
+
+					"pattern": [
+						{
+							"regexp": "^thread '.*' panicked at (.*):(\\d*):(\\d*):$",
+							"file": 1,
+							"line": 2,
+							"column": 3
+						},
+						{
+							"regexp": "(.*)",
+							"message": 1
+						}
+					],
+
+					"background": {
+						"beginsPattern": {
+							"regexp": "^\\s+(Running (unit)?tests|Doc-tests)"
+						},
+						"endsPattern": {
+							"regexp": "test result: (ok|FAILED)"
+						}
+					}
+				}
+			]
+		},
+
+		{
+			"label": "Cargo: Install crates",
+			"icon": {
+				"id": "package",
+				"color": "terminal.ansiYellow"
+			},
+
+			"type": "shell",
+			"command": "cargo add ${input:crates}",
+
+			"isBackground": false,
+			"presentation": {
+				"echo": false,
+				"panel": "dedicated",
+				"showReuseMessage": false
+			},
+
+			"problemMatcher": []
+		},
+
+		{
+			"label": "RustFMT: Format",
+			"icon": {
+				"id": "wand",
+				"color": "terminal.ansiMagenta"
+			},
+
+			"type": "shell",
+			"command": "cargo fmt",
+
+			"isBackground": false,
+			"group": "build",
+			"presentation": {
+				"echo": false,
+				"panel": "dedicated",
+				"showReuseMessage": false
+			},
+
+			"problemMatcher": []
+		},
+
+		{
+			"label": "Cargo Clippy: Lint",
+			"icon": {
+				"id": "wand",
+				"color": "terminal.ansiMagenta"
+			},
+
+			"type": "shell",
+			"command": "cargo clippy",
+
+			"isBackground": false,
+			"group": "build",
+			"presentation": {
+				"echo": false,
+				"panel": "dedicated",
+				"showReuseMessage": false
+			},
+
+			"problemMatcher": [
+				{
+					"base": "$rustc",
+					"applyTo": "allDocuments"
+				}
+			]
+		}
+	],
+
+	"inputs": [
+		{
+			"id": "args",
+			"description": "Arguments for the executable",
+			"type": "promptString"
+		},
+
+		{
+			"id": "crates",
+			"description": "Crates to install",
+			"type": "promptString"
+		}
+	]
+}
