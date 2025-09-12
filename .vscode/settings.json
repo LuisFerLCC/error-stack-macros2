@@ -1,5 +1,5 @@
 {
-	"[json][jsonc][markdown]": {
+	"[json][jsonc][markdown][yaml]": {
 		"editor.defaultFormatter": "esbenp.prettier-vscode"
 	},
 	"vscord.app.privacyMode.enable": true
