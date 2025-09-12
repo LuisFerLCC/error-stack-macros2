@@ -1,0 +1,59 @@
+name: Documentation Issue
+description: Is there something wrong or missing in the documentation?
+title: DOCS - (brief description)
+labels:
+  - 📄 Documentation
+assignees: LuisFerLCC
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # Documentation Issue
+
+  - type: input
+    id: path
+    attributes:
+      label: Path to the affected item
+      placeholder: error_stack_macros2::impl_error_stack
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Please describe the issue in as much detail as possible. You can also attach images here.
+      placeholder: |
+        This function needs documentation...
+        This example references the wrong type...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How critical is this issue? (please be realistic)
+      options:
+        - Minor (not crucially broken)
+        - Medium (needs attention)
+        - Major (must be fixed immediately)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribution-guidelines
+    attributes:
+      label: Contribution guidelines
+      description: By submitting this issue, you agree that...
+      options:
+        - label: This is a documentation issue, not you [asking for
+            support](https://github.com/LuisFerLCC/error-stack-macros2/discussions/categories/q-a).
+          required: true
+        - label: The issue has not already been reported.
+          required: true
+        - label: You are following the project's [Code of
+            Conduct](https://github.com/LuisFerLCC/error-stack-macros2/blob/master/.github/CODE_OF_CONDUCT.md) and [contribution
+            guidelines](https://github.com/LuisFerLCC/error-stack-macros2/blob/master/.github/CONTRIBUTING.md).
+          required: true
