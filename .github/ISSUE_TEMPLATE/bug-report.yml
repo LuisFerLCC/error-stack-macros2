@@ -1,0 +1,97 @@
+name: Bug Report
+description: Is the macro not working as intended?
+title: BUG - (brief description)
+labels:
+  - 🐞 Bug
+assignees: LuisFerLCC
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # Bug Report
+
+        **IMPORTANT:** IF YOU WANT TO REPORT A SECURITY VULNERABILITY, PLEASE USE [SECURITY ADVISORIES](https://github.com/LuisFerLCC/error-stack-macros2/security/advisories/new) TO FILE A PRIVATE REPORT.
+
+  - type: input
+    id: crate-version
+    attributes:
+      label: Crate version
+      description: Which crate version are you using? You can find it in your `Cargo.toml` file.
+      placeholder: X.X.X
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: |
+        Please describe the bug and how to reproduce it in as much detail as possible.
+        You can also attach images or log files here.
+      placeholder: |
+        Steps to reproduce:
+        1.
+        2.
+        3.
+        ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: code-sample
+    attributes:
+      label: Code sample
+      description: |
+        If possible, include a reproducible code sample. The sample should be minimal (with no unnecessary code) but complete.
+        NOTE: This input will be automatically formatted into Rust code.
+      render: Rust
+      placeholder: |
+        use error_stack_macros2::Error;
+
+        #[derive(Debug, Error)]
+        #[display("Custom error")]
+        struct CustomError;
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How critical is this bug? (please be realistic)
+      options:
+        - Minor bug (annoying, but not fundamentally broken)
+        - Medium bug (needs attention)
+        - Major bug (must be fixed immediately)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribution-guidelines
+    attributes:
+      label: Contribution guidelines
+      description: By submitting this issue, you agree that...
+      options:
+        - label: This is a bug, not you [asking for support](https://github.com/LuisFerLCC/error-stack-macros2/discussions/categories/q-a).
+          required: true
+        - label: You have read the [documentation](https://docs.rs/error-stack-macros2) and made sure this is not intended behavior.
+          required: true
+        - label: The issue has not already been reported.
+          required: true
+        - label: You are following the project's [Code of
+            Conduct](https://github.com/LuisFerLCC/error-stack-macros2/blob/master/.github/CODE_OF_CONDUCT.md) and [contribution
+            guidelines](https://github.com/LuisFerLCC/error-stack-macros2/blob/master/.github/CONTRIBUTING.md).
+          required: true

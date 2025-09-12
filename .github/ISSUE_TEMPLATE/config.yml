@@ -1,0 +1,10 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Documentation
+    url: https://docs.rs/error-stack-macros2
+    about: Please check the documentation before filing new issues.
+
+  - name: Support
+    url: https://github.com/LuisFerLCC/error-stack-macros2/discussions/categories/q-a
+    about: Need help? Ask on GitHub discussions!
