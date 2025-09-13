@@ -8,3 +8,23 @@
 //! **NOTE 2:** This crate is currently empty and under development. This
 //! version (`0.0.0-reserved`) only reserves the crate name on crates.io for
 //! future use.
+
+use proc_macro::TokenStream;
+use quote::quote;
+use syn::parse_macro_input;
+
+mod types;
+use types::ErrorStackType;
+
+#[proc_macro_derive(Error, attributes(display))]
+pub fn impl_error_stack(input: TokenStream) -> TokenStream {
+    println!("Input: {}", input);
+
+    let derive_input = parse_macro_input!(input as ErrorStackType);
+    println!("Data: {derive_input:?}");
+
+    let output = quote! { #derive_input };
+    println!("Output: {}", output);
+
+    output.into()
+}
