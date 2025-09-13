@@ -1,12 +1,12 @@
 use proc_macro2::TokenStream as TokenStream2;
-use quote::ToTokens;
+use quote::{ToTokens, quote};
 use syn::{
     DeriveInput,
     parse::{Parse, ParseStream},
 };
 
 #[derive(Debug)]
-pub struct ErrorStackType(DeriveInput);
+pub(crate) struct ErrorStackType(DeriveInput);
 
 impl Parse for ErrorStackType {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -15,5 +15,17 @@ impl Parse for ErrorStackType {
 }
 
 impl ToTokens for ErrorStackType {
-    fn to_tokens(&self, tokens: &mut TokenStream2) {}
+    fn to_tokens(&self, tokens: &mut TokenStream2) {
+        let ident = &self.0.ident;
+
+        tokens.extend(quote! {
+            impl ::core::fmt::Display for #ident {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                    ::core::write!(f, "test")
+                }
+            }
+
+            impl ::core::error::Error for #ident {}
+        });
+    }
 }
