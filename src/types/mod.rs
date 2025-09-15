@@ -1,39 +1,70 @@
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{ToTokens, quote};
 use syn::{
-    DeriveInput, Ident,
+    DeriveInput, Ident, Meta,
     parse::{Parse, ParseStream},
+    spanned::Spanned,
 };
+
+use crate::types::format_args::FormatArgs;
+
+mod format_args;
 
 #[derive(Debug)]
 pub(crate) struct ErrorStackDeriveInput {
     ident: Ident,
-}
-
-impl ErrorStackDeriveInput {
-    pub(crate) fn ident(&self) -> &Ident {
-        &self.ident
-    }
+    display_args: FormatArgs,
 }
 
 impl Parse for ErrorStackDeriveInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let derive_input: DeriveInput = input.parse()?;
 
-        Ok(Self {
-            ident: derive_input.ident,
-        })
+        let ident = derive_input.ident;
+
+        let display_attr = derive_input
+            .attrs
+            .iter()
+            .find(|attr| attr.path().is_ident("display"))
+            .ok_or_else(|| {
+                syn::Error::new(ident.span(), "missing `display` attribute for type annotated with `#[derive(Error)]`")
+            })?;
+
+        match &display_attr.meta {
+            Meta::List(meta) => {
+                let display_args = syn::parse(meta.tokens.clone().into()).map_err(|err| {
+                    if err.to_string() == "unexpected end of input, expected string literal" {
+                        syn::Error::new(meta.span(), "unexpected empty `display` attribute, expected string literal")
+                    } else {
+                        err
+                    }
+                })?;
+
+                Ok(Self {
+                    ident,
+                    display_args,
+                })
+            }
+
+            _ => Err(syn::Error::new(
+                display_attr.span(),
+                "expected `display` to be a list attribute: `#[display(\"template...\")]`",
+            )),
+        }
     }
 }
 
 impl ToTokens for ErrorStackDeriveInput {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let ident = self.ident();
+        let Self {
+            ident,
+            display_args,
+        } = self;
 
         tokens.extend(quote! {
             impl ::core::fmt::Display for #ident {
                 fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                    ::core::write!(f, "test")
+                    ::core::write!(f, #display_args)
                 }
             }
 
