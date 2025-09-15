@@ -14,13 +14,13 @@ use quote::quote;
 use syn::parse_macro_input;
 
 mod types;
-use types::ErrorStackType;
+use types::ErrorStackDeriveInput;
 
 #[proc_macro_derive(Error, attributes(display))]
 pub fn impl_error_stack(input: TokenStream) -> TokenStream {
     println!("Input: {}", input);
 
-    let derive_input = parse_macro_input!(input as ErrorStackType);
+    let derive_input = parse_macro_input!(input as ErrorStackDeriveInput);
     println!("Data: {derive_input:?}");
 
     let output = quote! { #derive_input };

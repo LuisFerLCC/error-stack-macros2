@@ -1,22 +1,34 @@
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{ToTokens, quote};
 use syn::{
-    DeriveInput,
+    DeriveInput, Ident,
     parse::{Parse, ParseStream},
 };
 
 #[derive(Debug)]
-pub(crate) struct ErrorStackType(DeriveInput);
+pub(crate) struct ErrorStackDeriveInput {
+    ident: Ident,
+}
 
-impl Parse for ErrorStackType {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        input.parse().map(Self)
+impl ErrorStackDeriveInput {
+    pub(crate) fn ident(&self) -> &Ident {
+        &self.ident
     }
 }
 
-impl ToTokens for ErrorStackType {
+impl Parse for ErrorStackDeriveInput {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let derive_input: DeriveInput = input.parse()?;
+
+        Ok(Self {
+            ident: derive_input.ident,
+        })
+    }
+}
+
+impl ToTokens for ErrorStackDeriveInput {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let ident = &self.0.ident;
+        let ident = self.ident();
 
         tokens.extend(quote! {
             impl ::core::fmt::Display for #ident {
