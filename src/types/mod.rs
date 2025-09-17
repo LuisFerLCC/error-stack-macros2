@@ -6,14 +6,13 @@ use syn::{
     spanned::Spanned,
 };
 
-use crate::types::format_args::FormatArgs;
-
-mod format_args;
+mod fmt;
+use fmt::FormatInput;
 
 #[derive(Debug)]
 pub(crate) struct ErrorStackDeriveInput {
     ident: Ident,
-    display_args: FormatArgs,
+    display_input: FormatInput,
 }
 
 impl Parse for ErrorStackDeriveInput {
@@ -32,7 +31,7 @@ impl Parse for ErrorStackDeriveInput {
 
         match &display_attr.meta {
             Meta::List(meta) => {
-                let display_args = syn::parse(meta.tokens.clone().into()).map_err(|err| {
+                let display_input = syn::parse(meta.tokens.clone().into()).map_err(|err| {
                     if err.to_string() == "unexpected end of input, expected string literal" {
                         syn::Error::new(meta.span(), "unexpected empty `display` attribute, expected string literal")
                     } else {
@@ -42,7 +41,7 @@ impl Parse for ErrorStackDeriveInput {
 
                 Ok(Self {
                     ident,
-                    display_args,
+                    display_input,
                 })
             }
 
@@ -58,13 +57,13 @@ impl ToTokens for ErrorStackDeriveInput {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let Self {
             ident,
-            display_args,
+            display_input,
         } = self;
 
         tokens.extend(quote! {
             impl ::core::fmt::Display for #ident {
                 fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                    ::core::write!(f, #display_args)
+                    ::core::write!(f, #display_input)
                 }
             }
 
