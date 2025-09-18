@@ -16,6 +16,8 @@ use syn::parse_macro_input;
 mod types;
 use types::ErrorStackDeriveInput;
 
+mod util;
+
 #[proc_macro_derive(Error, attributes(display))]
 pub fn impl_error_stack(input: TokenStream) -> TokenStream {
     println!("Input: {}", input);
