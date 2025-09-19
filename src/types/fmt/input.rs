@@ -95,7 +95,7 @@ impl Parse for EnumVariantFormatInput {
             let inline_arg_str = group.as_str();
 
             let ident_str = if inline_arg_str.parse::<usize>().is_ok() {
-                &format!("field{}", inline_arg_str)
+                &format!("_field{}", inline_arg_str)
             } else {
                 inline_arg_str
             };

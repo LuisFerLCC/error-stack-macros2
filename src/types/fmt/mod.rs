@@ -22,6 +22,8 @@ pub(crate) enum FormatData {
         default_display_input: Option<LitStr>,
         variant_display_inputs: HashMap<Variant, EnumVariantFormatInput>,
     },
+
+    EmptyEnum,
 }
 
 impl FormatData {
@@ -38,13 +40,17 @@ impl FormatData {
             }
 
             Data::Enum(data) => {
+                let variants = &data.variants;
+                if variants.is_empty() {
+                    return Ok(Self::EmptyEnum);
+                }
+
                 let default_display_attr =
                     Self::get_display_attr(&derive_input.attrs);
 
-                let variant_display_attrs =
-                    data.variants.iter().map(|variant| {
-                        (variant, Self::get_display_attr(&variant.attrs))
-                    });
+                let variant_display_attrs = variants.iter().map(|variant| {
+                    (variant, Self::get_display_attr(&variant.attrs))
+                });
 
                 let variant_display_inputs_res = variant_display_attrs
                     .clone()
@@ -162,7 +168,7 @@ impl ToTokens for FormatData {
                             .map(|(i, field)|
                                 field.ident.clone().unwrap_or_else(||
                                     syn::Ident::new(
-                                        &format!("field{}", i),
+                                        &format!("_field{}", i),
                                         field.span())));
 
                         let field_tokens = match &variant.fields {
@@ -185,6 +191,12 @@ impl ToTokens for FormatData {
                    match &self {
                        #(#branches),*
                    }
+                });
+            }
+
+            Self::EmptyEnum => {
+                tokens.extend(quote! {
+                    unreachable!("attempted to format an empty enum")
                 });
             }
         }
