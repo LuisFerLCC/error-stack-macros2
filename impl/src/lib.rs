@@ -20,13 +20,6 @@ mod util;
 
 #[proc_macro_derive(Error, attributes(display))]
 pub fn impl_error_stack(input: TokenStream) -> TokenStream {
-    println!("Input: {}", input);
-
     let derive_input = parse_macro_input!(input as ErrorStackDeriveInput);
-    println!("Data: {derive_input:?}");
-
-    let output = quote! { #derive_input };
-    println!("Output: {}", output);
-
-    output.into()
+    quote! { #derive_input }.into()
 }
