@@ -10,7 +10,7 @@
 			},
 
 			"type": "shell",
-			"command": "cargo watch -c -x run",
+			"command": "cargo watch -c -x build",
 
 			"isBackground": true,
 			"presentation": {
@@ -85,6 +85,26 @@
 		},
 
 		{
+			"label": "Cargo: Generate documentation",
+			"icon": {
+				"id": "book",
+				"color": "terminal.ansiYellow"
+			},
+
+			"type": "shell",
+			"command": "cargo doc -p error-stack-macros2",
+
+			"isBackground": false,
+			"presentation": {
+				"echo": false,
+				"panel": "dedicated",
+				"showReuseMessage": false
+			},
+
+			"problemMatcher": []
+		},
+
+		{
 			"label": "Cargo: Test",
 			"icon": {
 				"id": "beaker",
@@ -138,7 +158,7 @@
 			},
 
 			"type": "shell",
-			"command": "cargo add ${input:crates}",
+			"command": "cargo add -p error-stack-macros2 ${input:crates}",
 
 			"isBackground": false,
 			"presentation": {
