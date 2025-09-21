@@ -287,4 +287,19 @@ mod tests {
             "expected `display` to be a list attribute: `#[display(\"template...\")]`"
         );
     }
+
+    #[test]
+    fn union_type_is_rejected() {
+        let derive_input = syn::parse2::<DeriveInput>(
+            quote! { union CustomType { f1: u32, f2: f32 } },
+        )
+        .expect("malformed test stream");
+        let err = FormatData::new(&derive_input).expect_err(
+            "stream with union type was parsed successfully as FormatData",
+        );
+        assert_eq!(
+            err.to_string(),
+            "`#[derive(Error)]` only supports structs and enums"
+        );
+    }
 }
