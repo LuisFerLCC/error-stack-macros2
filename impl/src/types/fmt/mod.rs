@@ -202,3 +202,89 @@ impl ToTokens for FormatData {
         }
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::expect_used)]
+mod tests {
+    use super::*;
+
+    use quote::quote;
+
+    #[test]
+    fn struct_format_data_requires_display_attr() {
+        let derive_input =
+            syn::parse2::<DeriveInput>(quote! { struct CustomType; })
+                .expect("malformed test stream");
+        let err = FormatData::new(&derive_input).expect_err(
+            "stream without display attr was parsed successfully as FormatData",
+        );
+        assert_eq!(
+            err.to_string(),
+            "missing `display` attribute for struct with `#[derive(Error)]`"
+        );
+    }
+
+    #[test]
+    fn struct_format_data_requires_list_form_for_display_attr() {
+        let derive_input = syn::parse2::<DeriveInput>(
+            quote! { #[display] struct CustomType; },
+        )
+        .expect("malformed test stream");
+        let err = FormatData::new(&derive_input).expect_err(
+            "stream with path display attr was parsed successfully as FormatData",
+        );
+        assert_eq!(
+            err.to_string(),
+            "expected `display` to be a list attribute: `#[display(\"template...\")]`"
+        );
+    }
+
+    #[test]
+    fn enum_format_data_requires_display_attr() {
+        let derive_input =
+            syn::parse2::<DeriveInput>(quote! { enum CustomType { One, Two } })
+                .expect("malformed test stream");
+        let err = FormatData::new(&derive_input).expect_err(
+            "stream without display attr was parsed successfully as FormatData",
+        );
+        assert_eq!(
+            err.to_string(),
+            "missing `display` attribute for enum with `#[derive(Error)]`\nadd a `display` attribute to at least the whole enum or to all of its variants"
+        );
+    }
+
+    #[test]
+    fn enum_format_data_requires_list_form_for_display_attr() {
+        let derive_input = syn::parse2::<DeriveInput>(
+            quote! { #[display] enum CustomType { One, Two } },
+        )
+        .expect("malformed test stream");
+        let err = FormatData::new(&derive_input).expect_err(
+            "stream with path display attr was parsed successfully as FormatData",
+        );
+        assert_eq!(
+            err.to_string(),
+            "expected `display` to be a list attribute: `#[display(\"template...\")]`"
+        );
+    }
+
+    #[test]
+    fn enum_format_data_requires_list_form_for_display_attr_on_every_variant() {
+        let derive_input = syn::parse2::<DeriveInput>(quote! {
+            enum CustomType {
+                #[display]
+                One,
+                #[display]
+                Two
+            }
+        })
+        .expect("malformed test stream");
+        let err = FormatData::new(&derive_input).expect_err(
+            "stream with path display attr was parsed successfully as FormatData",
+        );
+        assert_eq!(
+            err.to_string(),
+            "expected `display` to be a list attribute: `#[display(\"template...\")]`"
+        );
+    }
+}
