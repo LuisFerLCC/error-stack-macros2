@@ -39,6 +39,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "error-stack-macros2-tests"
+version = "0.0.0-reserved"
+dependencies = [
+ "error-stack",
+ "error-stack-macros2",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -151,7 +151,7 @@
 		},
 
 		{
-			"label": "Cargo: Install crates",
+			"label": "Cargo: Install crates (impl crate)",
 			"icon": {
 				"id": "package",
 				"color": "terminal.ansiYellow"
@@ -159,6 +159,26 @@
 
 			"type": "shell",
 			"command": "cargo add -p error-stack-macros2 ${input:crates}",
+
+			"isBackground": false,
+			"presentation": {
+				"echo": false,
+				"panel": "dedicated",
+				"showReuseMessage": false
+			},
+
+			"problemMatcher": []
+		},
+
+		{
+			"label": "Cargo: Install crates (tests crate)",
+			"icon": {
+				"id": "package",
+				"color": "terminal.ansiYellow"
+			},
+
+			"type": "shell",
+			"command": "cargo add -p error-stack-macros2-tests ${input:crates}",
 
 			"isBackground": false,
 			"presentation": {
