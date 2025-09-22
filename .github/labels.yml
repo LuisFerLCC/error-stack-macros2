@@ -1,10 +1,18 @@
 - name: 💣 Breaking change
-  description: Unintended change that breaks existing behavior
+  description: Change that modifies existing behavior
   color: "f79f34"
 
 - name: 🐞 Bug
   description: Not working as intended
   color: "d73a4a"
+
+- name: ⚙️ Configuration
+  description: Changes to configuration files
+  color: "7057ff"
+
+- name: 📦 Dependencies
+  description: PRs that update production dependencies
+  color: "0d7bb5"
 
 - name: 💻 Dev Dependencies
   description: PRs that update development dependencies
@@ -74,6 +82,10 @@
   description: Unit testing is needed
   color: "c23675"
 
+- name: 🔄 New release
+  description: This PR into `stable` marks a new release
+  color: "f9c74f"
+
 - name: 🍰 Nice to have
   description: Unplanned behavior, but useful
   color: "c5def5"
@@ -82,16 +94,16 @@
   description: Development on this issue has been suspended
   color: "d4c5f9"
 
+- name: 🚀 Performance
+  description: Improvements to performance
+  color: "fbca04"
+
 - name: ✅ Ready to merge
   description: This PR is ready to be merged
   color: "0ff40b"
 
 - name: 🔄 Release preparation
   description: Preparing for a new release (version bump, release notes, etc.)
-  color: "f9c74f"
-
-- name: 🔄 New release
-  description: This PR into `stable` marks a new release
   color: "f9c74f"
 
 - name: 🧪 Tests
