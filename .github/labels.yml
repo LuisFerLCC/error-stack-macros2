@@ -86,6 +86,14 @@
   description: This PR is ready to be merged
   color: "0ff40b"
 
+- name: 🔄 Release preparation
+  description: Preparing for a new release (version bump, release notes, etc.)
+  color: "f9c74f"
+
+- name: 🔄 New release
+  description: This PR into `stable` marks a new release
+  color: "f9c74f"
+
 - name: 🧪 Tests
   description: Improvements or additions to unit tests
   color: "9f2d60"
