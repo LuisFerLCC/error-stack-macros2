@@ -1,0 +1,65 @@
+name: Run tests and check version on crates.io
+
+on:
+  pull_request:
+    branches:
+      - stable
+
+
+jobs:
+  test:
+    name: Run tests on PR into stable
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@2fcdc490d667999e01ddbbf0f2823181beef6b39
+        with:
+          components: rustfmt, clippy
+
+      - name: Run RustFMT
+        uses: actions-rust-lang/rustfmt@559aa3035a47390ba96088dffa783b5d26da9326
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features
+
+      - name: Run tests
+        run: cargo test --verbose --all-targets --all-features
+
+      - name: Run documentation tests
+        run: cargo test --verbose --doc --all-features
+
+
+  check-version:
+    name: Check version on crates.io
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - name: Get crate version
+        id: get_crate_info
+        run: |
+          CRATE_VERSION=$(grep '^version = ' Cargo.toml | head -n 1 | cut -d '"' -f 2)
+          echo "Crate error-stack-macros2"
+          echo "Crate Version: $CRATE_VERSION"
+          echo "crate_version=$CRATE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check if version already exists on crates.io
+        run: |
+          CRATE_VERSION="${{ steps.get_crate_info.outputs.crate_version }}"
+          API_URL="https://crates.io/api/v1/crates/error-stack-macros2/$CRATE_VERSION"
+
+          echo "Checking $API_URL"
+
+          if curl --head -f "$API_URL"; then
+            echo "Error: Version $CRATE_VERSION already exists on crates.io!"
+            echo "Please increment the version in Cargo.toml."
+            exit 1
+          else
+            echo "Version $CRATE_VERSION does not exist on crates.io. You're good to go!"
+          fi

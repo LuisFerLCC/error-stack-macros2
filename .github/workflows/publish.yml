@@ -1,0 +1,59 @@
+name: Publish to crates.io
+
+on:
+  push:
+    branches:
+      - stable
+
+permissions:
+  contents: write
+  discussions: write
+
+
+jobs:
+  test:
+    name: Run tests and publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@2fcdc490d667999e01ddbbf0f2823181beef6b39
+        with:
+          components: rustfmt, clippy
+
+      - name: Run RustFMT
+        uses: actions-rust-lang/rustfmt@559aa3035a47390ba96088dffa783b5d26da9326
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features
+
+      - name: Run tests
+        run: cargo test --verbose --all-targets --all-features
+
+      - name: Run documentation tests
+        run: cargo test --verbose --doc --all-features
+
+      - name: Get crate version
+        id: get_crate_info
+        run: |
+          CRATE_VERSION=$(grep '^version = ' Cargo.toml | head -n 1 | cut -d '"' -f 2)
+          echo "Crate error-stack-macros2"
+          echo "Crate Version: $CRATE_VERSION"
+          echo "crate_version=$CRATE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Publish crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATESIO_API_TOKEN }}
+        run: cargo publish
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836
+        with:
+          body_path: RELEASE.md
+          prerelease: true
+          name: "`error-stack-macros2` ${{ steps.get_crate_info.outputs.crate_version }}"
+          tag_name: v${{ steps.get_crate_info.outputs.crate_version }}
+          target_commitish: stable
