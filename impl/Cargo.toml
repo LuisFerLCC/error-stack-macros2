@@ -1,0 +1,39 @@
+[package]
+name = "error-stack-macros2"
+version = "0.0.0-reserved"
+authors = ["LuisFerLCC"]
+edition = "2024"
+rust-version = "1.90.0"
+description = "Community-made procedural macros for error-stack."
+readme = "../README.md"
+repository = "https://github.com/LuisFerLCC/error-stack-macros2"
+license = "Apache-2.0"
+keywords = ["error", "errorstack", "error-handling", "macros", "proc-macro"]
+categories = ["development-tools", "rust-patterns"]
+
+[lib]
+proc-macro = true
+
+[lints.rust]
+missing_docs = "warn"
+single_use_lifetimes = "warn"
+unconditional_recursion = "deny"
+unit_bindings = "warn"
+unnameable_types = "warn"
+unreachable_pub = "warn"
+unsafe_code = "deny"
+unused_lifetimes = "warn"
+
+[lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+
+[dependencies]
+proc-macro2 = "1.0.101"
+quote = "1.0.40"
+regex = "1.11.2"
+syn = { version = "2.0.106", features = [] }
+
+[dev-dependencies]
+error-stack = "0.6.0"
