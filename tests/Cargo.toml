@@ -1,6 +1,6 @@
 [package]
 name = "error-stack-macros2-tests"
-version = "0.0.0-reserved"
+version = "0.1.0"
 authors = ["LuisFerLCC"]
 edition = "2024"
 rust-version = "1.90.0"
