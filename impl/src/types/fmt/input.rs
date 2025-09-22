@@ -1,3 +1,6 @@
+#[cfg(test)]
+use std::fmt::{self, Debug, Formatter};
+
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{ToTokens, quote};
 use regex::Regex;
@@ -8,10 +11,16 @@ use syn::{
     token::Comma,
 };
 
-#[derive(Debug)]
 pub(crate) struct StructFormatInput {
     lit_str: LitStr,
     args: Punctuated<Expr, Comma>,
+}
+
+#[cfg(test)]
+impl Debug for StructFormatInput {
+    fn fmt(&self, _: &mut Formatter<'_>) -> fmt::Result {
+        Ok(())
+    }
 }
 
 impl Parse for StructFormatInput {
@@ -66,10 +75,16 @@ impl ToTokens for StructFormatInput {
     }
 }
 
-#[derive(Debug)]
 pub(crate) struct EnumVariantFormatInput {
     lit_str: LitStr,
     args: Punctuated<Ident, Comma>,
+}
+
+#[cfg(test)]
+impl Debug for EnumVariantFormatInput {
+    fn fmt(&self, _: &mut Formatter<'_>) -> fmt::Result {
+        Ok(())
+    }
 }
 
 impl Parse for EnumVariantFormatInput {

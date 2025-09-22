@@ -8,7 +8,6 @@ use syn::{
 mod fmt;
 use fmt::FormatData;
 
-#[derive(Debug)]
 pub(crate) struct ErrorStackDeriveInput {
     ident: Ident,
     display_data: FormatData,

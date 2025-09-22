@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+#[cfg(test)]
+use std::fmt::{self, Debug, Formatter};
 
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{ToTokens, quote};
@@ -12,7 +13,6 @@ use input::{EnumVariantFormatInput, StructFormatInput};
 
 use crate::util::traits::IteratorExt;
 
-#[derive(Debug)]
 pub(crate) enum FormatData {
     Struct {
         display_input: StructFormatInput,
@@ -20,7 +20,7 @@ pub(crate) enum FormatData {
 
     Enum {
         default_display_input: Option<LitStr>,
-        variant_display_inputs: HashMap<Variant, EnumVariantFormatInput>,
+        variant_display_inputs: Vec<(Variant, EnumVariantFormatInput)>,
     },
 
     EmptyEnum,
@@ -59,7 +59,7 @@ impl FormatData {
                         Self::get_format_input(attr)
                             .map(|input| (variant.clone(), input))
                     })
-                    .collect_hashmap_and_combine_syn_errors();
+                    .collect_vec_and_combine_syn_errors();
 
                 if let Some(attr) = default_display_attr {
                     let default_display_input =
@@ -140,6 +140,13 @@ impl FormatData {
             display_attr.span(),
             "expected `display` to be a list attribute: `#[display(\"template...\")]`",
         ))
+    }
+}
+
+#[cfg(test)]
+impl Debug for FormatData {
+    fn fmt(&self, _: &mut Formatter<'_>) -> fmt::Result {
+        Ok(())
     }
 }
 

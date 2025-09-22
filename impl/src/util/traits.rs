@@ -1,20 +1,15 @@
-use std::{collections::HashMap, hash::Hash};
-
-pub(crate) trait IteratorExt<K, V>:
-    Sized + Iterator<Item = syn::Result<(K, V)>>
-where
-    K: Eq + Hash,
+pub(crate) trait IteratorExt<T>:
+    Sized + Iterator<Item = syn::Result<T>>
 {
-    fn collect_hashmap_and_combine_syn_errors(
-        mut self,
-    ) -> syn::Result<HashMap<K, V>> {
-        let mut map = HashMap::new();
+    fn collect_vec_and_combine_syn_errors(mut self) -> syn::Result<Vec<T>> {
+        let mut vec = Vec::new();
 
         while let Some(res) = self.next() {
             match res {
-                Ok((k, v)) => {
-                    map.insert(k, v);
+                Ok(item) => {
+                    vec.push(item);
                 }
+
                 Err(mut err) => {
                     while let Some(Err(err2)) = self.next() {
                         err.combine(err2);
@@ -25,13 +20,8 @@ where
             }
         }
 
-        Ok(map)
+        Ok(vec)
     }
 }
 
-impl<I, K, V> IteratorExt<K, V> for I
-where
-    I: Sized + Iterator<Item = syn::Result<(K, V)>>,
-    K: Eq + Hash,
-{
-}
+impl<I, T> IteratorExt<T> for I where I: Sized + Iterator<Item = syn::Result<T>> {}
