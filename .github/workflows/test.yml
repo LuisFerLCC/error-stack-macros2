@@ -1,0 +1,34 @@
+name: Run tests
+
+on:
+  pull_request:
+    branches:
+      - master
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@2fcdc490d667999e01ddbbf0f2823181beef6b39
+        with:
+          components: rustfmt, clippy
+
+      - name: Run RustFMT
+        uses: actions-rust-lang/rustfmt@559aa3035a47390ba96088dffa783b5d26da9326
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features
+
+      - name: Run tests
+        run: cargo test --verbose --all-targets --all-features
+
+      - name: Run documentation tests
+        run: cargo test --verbose --doc --all-features
