@@ -1,6 +1,26 @@
 version: 2
+
 updates:
+  # Production dependencies (e.g., [dependencies], [build-dependencies])
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
       interval: daily
+    allow:
+      - dependency-type: "production"
+    labels:
+      - "📦 Dependencies"
+    assignees:
+      - LuisFerLCC
+
+  # Development dependencies (e.g., [dev-dependencies])
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: daily
+    allow:
+      - dependency-type: "development"
+    labels:
+      - "💻 Dev Dependencies"
+    assignees:
+      - LuisFerLCC
