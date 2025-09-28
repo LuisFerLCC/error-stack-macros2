@@ -75,19 +75,19 @@ impl ToTokens for StructFormatInput {
     }
 }
 
-pub(crate) struct EnumVariantFormatInput {
+pub(crate) struct VariantFormatInput {
     lit_str: LitStr,
     args: Punctuated<Ident, Comma>,
 }
 
 #[cfg(test)]
-impl Debug for EnumVariantFormatInput {
+impl Debug for VariantFormatInput {
     fn fmt(&self, _: &mut Formatter<'_>) -> fmt::Result {
         Ok(())
     }
 }
 
-impl Parse for EnumVariantFormatInput {
+impl Parse for VariantFormatInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let mut lit_str: LitStr = input.parse()?;
 
@@ -127,7 +127,7 @@ impl Parse for EnumVariantFormatInput {
     }
 }
 
-impl ToTokens for EnumVariantFormatInput {
+impl ToTokens for VariantFormatInput {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let Self { lit_str, args } = self;
 
@@ -188,9 +188,9 @@ mod tests {
 
     #[test]
     fn enum_variant_format_input_requires_initial_lit_str() {
-        let empty_stream_res = syn::parse2::<EnumVariantFormatInput>(quote! {});
+        let empty_stream_res = syn::parse2::<VariantFormatInput>(quote! {});
         let err = empty_stream_res.expect_err(
-            "empty stream was parsed successfully as EnumVariantFormatInput",
+            "empty stream was parsed successfully as VariantFormatInput",
         );
         assert_eq!(
             err.to_string(),
@@ -201,9 +201,9 @@ mod tests {
     #[test]
     fn enum_variant_format_input_requires_initial_arg_to_be_lit_str() {
         let empty_stream_res =
-            syn::parse2::<EnumVariantFormatInput>(quote! { true });
+            syn::parse2::<VariantFormatInput>(quote! { true });
         let err = empty_stream_res.expect_err(
-            "stream `true` was parsed successfully as EnumVariantFormatInput",
+            "stream `true` was parsed successfully as VariantFormatInput",
         );
         assert_eq!(err.to_string(), "expected string literal");
     }
@@ -211,9 +211,9 @@ mod tests {
     #[test]
     fn enum_variant_format_input_rejects_unexpected_token_after_lit_str() {
         let empty_stream_res =
-            syn::parse2::<EnumVariantFormatInput>(quote! { "format string" 5 });
+            syn::parse2::<VariantFormatInput>(quote! { "format string" 5 });
         let err = empty_stream_res.expect_err(
-            "stream `\"format string\" 5` was parsed successfully as EnumVariantFormatInput",
+            "stream `\"format string\" 5` was parsed successfully as VariantFormatInput",
         );
         assert_eq!(err.to_string(), "unexpected token after string literal");
     }
@@ -221,9 +221,9 @@ mod tests {
     #[test]
     fn enum_variant_format_input_parses_lit_str_with_trailing_comma() {
         let empty_stream_res =
-            syn::parse2::<EnumVariantFormatInput>(quote! { "format string", });
+            syn::parse2::<VariantFormatInput>(quote! { "format string", });
         let format_input = empty_stream_res.expect(
-            "stream `\"format string\",` could not be parsed as EnumVariantFormatInput",
+            "stream `\"format string\",` could not be parsed as VariantFormatInput",
         );
         assert_eq!(format_input.lit_str.value(), "format string");
     }

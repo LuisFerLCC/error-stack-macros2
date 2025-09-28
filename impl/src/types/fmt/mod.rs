@@ -1,65 +1,54 @@
+use std::convert::Infallible;
 #[cfg(test)]
 use std::fmt::{self, Debug, Formatter};
 
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{ToTokens, quote};
 use syn::{
-    Attribute, Data, DeriveInput, Fields, LitStr, Meta, Variant, parse::Parse,
-    spanned::Spanned,
+    Attribute, Data, Fields, Ident, LitStr, Meta, Variant, parse::Parse,
+    punctuated::Punctuated, spanned::Spanned, token::Comma,
 };
 
 pub(crate) mod input;
-use input::{EnumVariantFormatInput, StructFormatInput};
+use input::{StructFormatInput, VariantFormatInput};
 
-use crate::util::traits::IteratorExt;
-
-pub(crate) enum FormatData {
+pub(crate) enum TypeData {
     Struct {
         display_input: StructFormatInput,
     },
 
     Enum {
         default_display_input: Option<LitStr>,
-        variant_display_inputs: Vec<(Variant, EnumVariantFormatInput)>,
+        variant_display_inputs: Vec<VariantData>,
     },
 
     EmptyEnum,
 }
 
-impl FormatData {
-    pub(crate) fn new(derive_input: &DeriveInput) -> syn::Result<Self> {
-        let ident = &derive_input.ident;
-
-        match &derive_input.data {
+impl TypeData {
+    pub(crate) fn new(
+        input_data: Data,
+        attrs: Vec<Attribute>,
+        ident_span: Span,
+    ) -> syn::Result<Self> {
+        match input_data {
             Data::Struct(_) => {
-                let display_attr = Self::get_display_attr(&derive_input.attrs)
-                    .ok_or_else(|| syn::Error::new(ident.span(), "missing `display` attribute for struct with `#[derive(Error)]`"))?;
+                let display_attr = Self::get_display_attr(attrs)
+                    .ok_or_else(|| syn::Error::new(ident_span, "missing `display` attribute for struct with `#[derive(Error)]`"))?;
                 let display_input = Self::get_format_input(display_attr)?;
 
                 Ok(Self::Struct { display_input })
             }
 
             Data::Enum(data) => {
-                let variants = &data.variants;
+                let variants = data.variants;
                 if variants.is_empty() {
                     return Ok(Self::EmptyEnum);
                 }
 
-                let default_display_attr =
-                    Self::get_display_attr(&derive_input.attrs);
-
-                let variant_display_attrs = variants.iter().map(|variant| {
-                    (variant, Self::get_display_attr(&variant.attrs))
-                });
-
-                let variant_display_inputs_res = variant_display_attrs
-                    .clone()
-                    .filter_map(|(variant, attr)| Some((variant, attr?)))
-                    .map(|(variant, attr)| {
-                        Self::get_format_input(attr)
-                            .map(|input| (variant.clone(), input))
-                    })
-                    .collect_vec_and_combine_syn_errors();
+                let default_display_attr = Self::get_display_attr(attrs);
+                let variant_display_inputs =
+                    Self::collect_valid_variant_states(variants)?;
 
                 if let Some(attr) = default_display_attr {
                     let default_display_input =
@@ -67,73 +56,85 @@ impl FormatData {
 
                     return Ok(Self::Enum {
                         default_display_input,
-                        variant_display_inputs: variant_display_inputs_res?,
+                        variant_display_inputs: variant_display_inputs
+                            .into_iter()
+                            .filter_map(|state| state.data())
+                            .collect(),
                     });
+                };
+
+                let (valid_variants, none_spans) =
+                    Self::separate_existing_variant_states(
+                        variant_display_inputs.into_iter(),
+                    );
+
+                if valid_variants.is_empty() {
+                    return Err(syn::Error::new(
+                        ident_span,
+                        "missing `display` attribute for enum with `#[derive(Error)]`\nadd a `display` attribute to at least the whole enum or to all of its variants",
+                    ));
                 }
 
-                match variant_display_inputs_res {
-                    Ok(inputs) => {
-                        if inputs.is_empty() {
-                            return Err(syn::Error::new(
-                                ident.span(),
-                                "missing `display` attribute for enum with `#[derive(Error)]`\nadd a `display` attribute to at least the whole enum or to all of its variants",
-                            ));
-                        }
-
-                        let unformatted_variants_error = variant_display_attrs
-                            .filter_map(|(variant, attr)| match attr {
-                                Some(_) => None,
-                                None => Some(syn::Error::new(
-                                    variant.span(),
-                                    "missing `display` attribute for variant in enum with `#[derive(Error)]`\nadd a `display` attribute either to the whole enum (as a default) or to the remaining variants"
-                                )),
-                            })
-                            .reduce(|mut acc, next| {
-                                acc.combine(next);
-                                acc
-                            });
-
-                        if let Some(err) = unformatted_variants_error {
-                            return Err(err);
-                        }
-
-                        Ok(Self::Enum {
-                            default_display_input: None,
-                            variant_display_inputs: inputs,
-                        })
-                    }
-
-                    Err(err) => Err(err),
+                if !none_spans.is_empty() {
+                    #[allow(clippy::unwrap_used)]
+                    return Err(none_spans
+                        .into_iter()
+                        .map(|span| {
+                            syn::Error::new(
+                                span,
+                                "missing `display` attribute for variant in enum with `#[derive(Error)]`\nadd a `display` attribute either to the whole enum (as a default) or to the remaining variants"
+                            )
+                        }).reduce(|mut err, err2| {
+                            err.combine(err2);
+                            err
+                        }).unwrap());
                 }
+
+                Ok(Self::Enum {
+                    default_display_input: None,
+                    variant_display_inputs: valid_variants,
+                })
             }
 
             _ => Err(syn::Error::new(
-                ident.span(),
+                ident_span,
                 "`#[derive(Error)]` only supports structs and enums",
             )),
         }
     }
 
-    pub(crate) fn get_display_attr(attrs: &[Attribute]) -> Option<&Attribute> {
-        attrs.iter().find(|attr| attr.path().is_ident("display"))
+    fn get_display_attr(attrs: Vec<Attribute>) -> Option<Attribute> {
+        attrs
+            .into_iter()
+            .find(|attr| attr.path().is_ident("display"))
     }
 
-    pub(crate) fn get_format_input<T>(
-        display_attr: &Attribute,
-    ) -> syn::Result<T>
+    fn get_format_input<T>(display_attr: Attribute) -> syn::Result<T>
     where
         T: Parse,
     {
-        if let Meta::List(meta) = &display_attr.meta {
-            return syn::parse(meta.tokens.clone().into()).map_err(|err| {
-                if err.to_string()
-                    == "unexpected end of input, expected string literal"
-                {
-                    syn::Error::new(meta.span(), "unexpected empty `display` attribute, expected string literal")
-                } else {
-                    err
+        if let Meta::List(meta) = display_attr.meta {
+            let meta_span = meta.span();
+
+            let parse_res = syn::parse::<T>(meta.tokens.into());
+
+            match parse_res {
+                Ok(input) => return Ok(input),
+                Err(err) => {
+                    return Err(
+                        if err.to_string()
+                            == "unexpected end of input, expected string literal"
+                        {
+                            syn::Error::new(
+                                meta_span,
+                                "unexpected empty `display` attribute, expected string literal",
+                            )
+                        } else {
+                            err
+                        },
+                    );
                 }
-            });
+            }
         }
 
         Err(syn::Error::new(
@@ -141,16 +142,78 @@ impl FormatData {
             "expected `display` to be a list attribute: `#[display(\"template...\")]`",
         ))
     }
+
+    fn collect_valid_variant_states(
+        variants: Punctuated<Variant, Comma>,
+    ) -> Result<Vec<ValidVariantState>, syn::Error> {
+        let mut variant_states_iter = variants.into_iter().map(|variant| {
+            let variant_span = variant.span();
+
+            use VariantState as VS;
+            match Self::get_display_attr(variant.attrs) {
+                None => VS::None(variant_span),
+                Some(attr) => match Self::get_format_input(attr) {
+                    Ok(input) => VS::Valid(VariantData {
+                        ident: variant.ident,
+                        fields: variant.fields,
+                        display_input: input,
+                    }),
+                    Err(err) => VS::Invalid(err),
+                },
+            }
+        });
+
+        let mut vec = Vec::new();
+
+        while let Some(state) = variant_states_iter.next() {
+            use VariantState as VS;
+            match state {
+                VS::None(span) => vec.push(VS::None(span)),
+                VS::Valid(data) => vec.push(VS::Valid(data)),
+                VS::Invalid(mut err) => {
+                    while let Some(VS::Invalid(err2)) =
+                        variant_states_iter.next()
+                    {
+                        err.combine(err2);
+                    }
+
+                    return Err(err);
+                }
+            }
+        }
+
+        Ok(vec)
+    }
+
+    fn separate_existing_variant_states<I>(
+        states_iter: I,
+    ) -> (Vec<VariantData>, Vec<Span>)
+    where
+        I: Iterator<Item = ValidVariantState>,
+    {
+        let mut valid_variants = Vec::new();
+        let mut none_spans = Vec::new();
+
+        for state in states_iter {
+            use VariantState as VS;
+            match state {
+                VS::Valid(data) => valid_variants.push(data),
+                VS::None(span) => none_spans.push(span),
+            }
+        }
+
+        (valid_variants, none_spans)
+    }
 }
 
 #[cfg(test)]
-impl Debug for FormatData {
+impl Debug for TypeData {
     fn fmt(&self, _: &mut Formatter<'_>) -> fmt::Result {
         Ok(())
     }
 }
 
-impl ToTokens for FormatData {
+impl ToTokens for TypeData {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         match self {
             Self::Struct { display_input } => {
@@ -165,28 +228,8 @@ impl ToTokens for FormatData {
             } => {
                 let branches = variant_display_inputs
                     .iter()
-                    .map(|(variant, format_input)| {
-                        let ident = &variant.ident;
-
-                        let fields = &variant.fields;
-                        let field_idents = fields
-                            .iter()
-                            .enumerate()
-                            .map(|(i, field)|
-                                field.ident.clone().unwrap_or_else(||
-                                    syn::Ident::new(
-                                        &format!("_field{}", i),
-                                        field.span())));
-
-                        let field_tokens = match &variant.fields {
-                            Fields::Named(_) => quote! { { #(#field_idents),* } },
-                            Fields::Unnamed(_) => quote! { ( #(#field_idents),* ) },
-                            Fields::Unit => TokenStream2::new()
-                        };
-
-                        quote! {
-                            Self::#ident #field_tokens => ::core::write!(f, #format_input)
-                        }
+                    .map(|variant| {
+                        quote! { #variant }
                     })
                     .chain(default_display_input.as_ref().map(|lit_str| {
                         quote! {
@@ -210,20 +253,73 @@ impl ToTokens for FormatData {
     }
 }
 
+pub(crate) enum VariantState<E> {
+    Valid(VariantData),
+    Invalid(E),
+    None(Span),
+}
+
+impl<E> VariantState<E> {
+    fn data(self) -> Option<VariantData> {
+        match self {
+            Self::Valid(data) => Some(data),
+            _ => None,
+        }
+    }
+}
+
+pub(crate) type ValidVariantState = VariantState<Infallible>;
+
+pub(crate) struct VariantData {
+    ident: Ident,
+    fields: Fields,
+    display_input: VariantFormatInput,
+}
+
+impl ToTokens for VariantData {
+    fn to_tokens(&self, tokens: &mut TokenStream2) {
+        let ident = &self.ident;
+        let fields = &self.fields;
+        let display_input = &self.display_input;
+
+        let field_idents = fields.iter().enumerate().map(|(i, field)| {
+            field.ident.clone().unwrap_or_else(|| {
+                syn::Ident::new(&format!("_field{}", i), field.span())
+            })
+        });
+
+        let field_tokens = match fields {
+            Fields::Named(_) => quote! { { #(#field_idents),* } },
+            Fields::Unnamed(_) => quote! { ( #(#field_idents),* ) },
+            Fields::Unit => TokenStream2::new(),
+        };
+
+        tokens.extend(quote! {
+            Self::#ident #field_tokens => ::core::write!(f, #display_input)
+        })
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::expect_used)]
 mod tests {
     use super::*;
 
     use quote::quote;
+    use syn::DeriveInput;
 
     #[test]
-    fn struct_format_data_requires_display_attr() {
+    fn struct_data_requires_display_attr() {
         let derive_input =
             syn::parse2::<DeriveInput>(quote! { struct CustomType; })
                 .expect("malformed test stream");
-        let err = FormatData::new(&derive_input).expect_err(
-            "stream without display attr was parsed successfully as FormatData",
+        let err = TypeData::new(
+            derive_input.data,
+            derive_input.attrs,
+            derive_input.ident.span(),
+        )
+        .expect_err(
+            "stream without display attr was parsed successfully as TypeData",
         );
         assert_eq!(
             err.to_string(),
@@ -232,13 +328,18 @@ mod tests {
     }
 
     #[test]
-    fn struct_format_data_requires_list_form_for_display_attr() {
+    fn struct_data_requires_list_form_for_display_attr() {
         let derive_input = syn::parse2::<DeriveInput>(
             quote! { #[display] struct CustomType; },
         )
         .expect("malformed test stream");
-        let err = FormatData::new(&derive_input).expect_err(
-            "stream with path display attr was parsed successfully as FormatData",
+        let err = TypeData::new(
+            derive_input.data,
+            derive_input.attrs,
+            derive_input.ident.span(),
+        )
+        .expect_err(
+            "stream with path display attr was parsed successfully as TypeData",
         );
         assert_eq!(
             err.to_string(),
@@ -247,12 +348,17 @@ mod tests {
     }
 
     #[test]
-    fn enum_format_data_requires_display_attr() {
+    fn enum_data_requires_display_attr() {
         let derive_input =
             syn::parse2::<DeriveInput>(quote! { enum CustomType { One, Two } })
                 .expect("malformed test stream");
-        let err = FormatData::new(&derive_input).expect_err(
-            "stream without display attr was parsed successfully as FormatData",
+        let err = TypeData::new(
+            derive_input.data,
+            derive_input.attrs,
+            derive_input.ident.span(),
+        )
+        .expect_err(
+            "stream without display attr was parsed successfully as TypeData",
         );
         assert_eq!(
             err.to_string(),
@@ -261,13 +367,18 @@ mod tests {
     }
 
     #[test]
-    fn enum_format_data_requires_list_form_for_display_attr() {
+    fn enum_data_requires_list_form_for_display_attr() {
         let derive_input = syn::parse2::<DeriveInput>(
             quote! { #[display] enum CustomType { One, Two } },
         )
         .expect("malformed test stream");
-        let err = FormatData::new(&derive_input).expect_err(
-            "stream with path display attr was parsed successfully as FormatData",
+        let err = TypeData::new(
+            derive_input.data,
+            derive_input.attrs,
+            derive_input.ident.span(),
+        )
+        .expect_err(
+            "stream with path display attr was parsed successfully as TypeData",
         );
         assert_eq!(
             err.to_string(),
@@ -276,7 +387,7 @@ mod tests {
     }
 
     #[test]
-    fn enum_format_data_requires_list_form_for_display_attr_on_every_variant() {
+    fn enum_data_requires_list_form_for_display_attr_on_every_variant() {
         let derive_input = syn::parse2::<DeriveInput>(quote! {
             enum CustomType {
                 #[display]
@@ -286,8 +397,13 @@ mod tests {
             }
         })
         .expect("malformed test stream");
-        let err = FormatData::new(&derive_input).expect_err(
-            "stream with path display attr was parsed successfully as FormatData",
+        let err = TypeData::new(
+            derive_input.data,
+            derive_input.attrs,
+            derive_input.ident.span(),
+        )
+        .expect_err(
+            "stream with path display attr was parsed successfully as TypeData",
         );
         assert_eq!(
             err.to_string(),
@@ -301,8 +417,13 @@ mod tests {
             quote! { union CustomType { f1: u32, f2: f32 } },
         )
         .expect("malformed test stream");
-        let err = FormatData::new(&derive_input).expect_err(
-            "stream with union type was parsed successfully as FormatData",
+        let err = TypeData::new(
+            derive_input.data,
+            derive_input.attrs,
+            derive_input.ident.span(),
+        )
+        .expect_err(
+            "stream with union type was parsed successfully as TypeData",
         );
         assert_eq!(
             err.to_string(),

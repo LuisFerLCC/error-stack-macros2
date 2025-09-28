@@ -6,18 +6,22 @@ use syn::{
 };
 
 mod fmt;
-use fmt::FormatData;
+use fmt::TypeData;
 
 pub(crate) struct ErrorStackDeriveInput {
     ident: Ident,
-    display_data: FormatData,
+    display_data: TypeData,
 }
 
 impl Parse for ErrorStackDeriveInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let derive_input: DeriveInput = input.parse()?;
 
-        let display_data = FormatData::new(&derive_input)?;
+        let display_data = TypeData::new(
+            derive_input.data,
+            derive_input.attrs,
+            derive_input.ident.span(),
+        )?;
 
         let ident = derive_input.ident;
 

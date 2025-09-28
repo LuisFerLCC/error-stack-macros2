@@ -114,8 +114,6 @@ use syn::parse_macro_input;
 mod types;
 use types::ErrorStackDeriveInput;
 
-mod util;
-
 /// Derive macro for the [`Error`] trait that implements the best practices for
 /// [`error-stack`].
 ///
