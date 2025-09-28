@@ -33,6 +33,8 @@ impl TypeData {
     ) -> syn::Result<Self> {
         match input_data {
             Data::Struct(_) => {
+                drop(input_data);
+
                 let display_attr = Self::get_display_attr(attrs)
                     .ok_or_else(|| syn::Error::new(ident_span, "missing `display` attribute for struct with `#[derive(Error)]`"))?;
                 let display_input = Self::get_format_input(display_attr)?;
@@ -43,6 +45,7 @@ impl TypeData {
             Data::Enum(data) => {
                 let variants = data.variants;
                 if variants.is_empty() {
+                    drop(variants);
                     return Ok(Self::EmptyEnum);
                 }
 
@@ -63,12 +66,16 @@ impl TypeData {
                     });
                 };
 
+                drop(default_display_attr);
+
                 let (valid_variants, none_spans) =
                     Self::separate_existing_variant_states(
                         variant_display_inputs.into_iter(),
                     );
 
                 if valid_variants.is_empty() {
+                    drop(valid_variants);
+                    drop(none_spans);
                     return Err(syn::Error::new(
                         ident_span,
                         "missing `display` attribute for enum with `#[derive(Error)]`\nadd a `display` attribute to at least the whole enum or to all of its variants",
@@ -76,6 +83,8 @@ impl TypeData {
                 }
 
                 if !none_spans.is_empty() {
+                    drop(valid_variants);
+
                     #[allow(clippy::unwrap_used)]
                     return Err(none_spans
                         .into_iter()
@@ -90,16 +99,23 @@ impl TypeData {
                         }).unwrap());
                 }
 
+                drop(none_spans);
+
                 Ok(Self::Enum {
                     default_display_input: None,
                     variant_display_inputs: valid_variants,
                 })
             }
 
-            _ => Err(syn::Error::new(
-                ident_span,
-                "`#[derive(Error)]` only supports structs and enums",
-            )),
+            _ => {
+                drop(input_data);
+                drop(attrs);
+
+                Err(syn::Error::new(
+                    ident_span,
+                    "`#[derive(Error)]` only supports structs and enums",
+                ))
+            }
         }
     }
 
@@ -113,8 +129,11 @@ impl TypeData {
     where
         T: Parse,
     {
+        let attr_span = display_attr.span();
+
         if let Meta::List(meta) = display_attr.meta {
             let meta_span = meta.span();
+            drop(meta.path);
 
             let parse_res = syn::parse::<T>(meta.tokens.into());
 
@@ -125,6 +144,8 @@ impl TypeData {
                         if err.to_string()
                             == "unexpected end of input, expected string literal"
                         {
+                            drop(err);
+
                             syn::Error::new(
                                 meta_span,
                                 "unexpected empty `display` attribute, expected string literal",
@@ -137,8 +158,10 @@ impl TypeData {
             }
         }
 
+        drop(display_attr);
+
         Err(syn::Error::new(
-            display_attr.span(),
+            attr_span,
             "expected `display` to be a list attribute: `#[display(\"template...\")]`",
         ))
     }
@@ -181,6 +204,8 @@ impl TypeData {
                 }
             }
         }
+
+        drop(variant_states_iter);
 
         Ok(vec)
     }
@@ -263,7 +288,10 @@ impl<E> VariantState<E> {
     fn data(self) -> Option<VariantData> {
         match self {
             Self::Valid(data) => Some(data),
-            _ => None,
+            _ => {
+                drop(self);
+                None
+            }
         }
     }
 }
@@ -291,7 +319,10 @@ impl ToTokens for VariantData {
         let field_tokens = match fields {
             Fields::Named(_) => quote! { { #(#field_idents),* } },
             Fields::Unnamed(_) => quote! { ( #(#field_idents),* ) },
-            Fields::Unit => TokenStream2::new(),
+            Fields::Unit => {
+                drop(field_idents);
+                TokenStream2::new()
+            }
         };
 
         tokens.extend(quote! {

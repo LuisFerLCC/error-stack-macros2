@@ -17,6 +17,9 @@ impl Parse for ErrorStackDeriveInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let derive_input: DeriveInput = input.parse()?;
 
+        drop(derive_input.generics);
+        drop(derive_input.vis);
+
         let display_data = TypeData::new(
             derive_input.data,
             derive_input.attrs,

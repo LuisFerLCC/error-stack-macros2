@@ -25,7 +25,7 @@ impl Debug for StructFormatInput {
 
 impl Parse for StructFormatInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut lit_str: LitStr = input.parse()?;
+        let lit_str: LitStr = input.parse()?;
 
         let comma: Option<Comma> = input.parse()?;
         if comma.is_none() && !input.is_empty() {
@@ -40,9 +40,14 @@ impl Parse for StructFormatInput {
         let mut fmt_string = lit_str.value();
         let mut args = Punctuated::new();
 
+        let lit_str_span = lit_str.span();
+        drop(lit_str);
+
         while let Some(captures) = regex.captures(&fmt_string) {
             #[allow(clippy::unwrap_used)]
             let group = captures.get(1).unwrap();
+            drop(captures);
+
             let inline_arg_str = group.as_str();
 
             let arg_tokens = if inline_arg_str.parse::<usize>().is_ok() {
@@ -59,7 +64,10 @@ impl Parse for StructFormatInput {
             fmt_string.replace_range(group.range(), "");
         }
 
-        lit_str = LitStr::new(&fmt_string, lit_str.span());
+        drop(regex);
+
+        let lit_str = LitStr::new(&fmt_string, lit_str_span);
+        drop(fmt_string);
 
         Ok(Self { lit_str, args })
     }
@@ -89,7 +97,7 @@ impl Debug for VariantFormatInput {
 
 impl Parse for VariantFormatInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut lit_str: LitStr = input.parse()?;
+        let lit_str: LitStr = input.parse()?;
 
         let comma: Option<Comma> = input.parse()?;
         if comma.is_none() && !input.is_empty() {
@@ -104,9 +112,14 @@ impl Parse for VariantFormatInput {
         let mut fmt_string = lit_str.value();
         let mut args = Punctuated::new();
 
+        let lit_str_span = lit_str.span();
+        drop(lit_str);
+
         while let Some(captures) = regex.captures(&fmt_string) {
             #[allow(clippy::unwrap_used)]
             let group = captures.get(1).unwrap();
+            drop(captures);
+
             let inline_arg_str = group.as_str();
 
             let ident_str = if inline_arg_str.parse::<usize>().is_ok() {
@@ -121,7 +134,10 @@ impl Parse for VariantFormatInput {
             fmt_string.replace_range(group.range(), "");
         }
 
-        lit_str = LitStr::new(&fmt_string, lit_str.span());
+        drop(regex);
+
+        let lit_str = LitStr::new(&fmt_string, lit_str_span);
+        drop(fmt_string);
 
         Ok(Self { lit_str, args })
     }
