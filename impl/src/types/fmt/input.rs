@@ -58,7 +58,7 @@ impl Parse for StructFormatInput {
                 quote! { &self.#ident }
             };
 
-            let arg_expr = syn::parse(arg_tokens.into())?;
+            let arg_expr = syn::parse2(arg_tokens)?;
             args.push(arg_expr);
 
             fmt_string.replace_range(group.range(), "");

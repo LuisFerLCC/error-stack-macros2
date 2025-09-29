@@ -132,7 +132,7 @@ impl TypeData {
             let meta_span = meta.span();
             drop(meta.path);
 
-            let parse_res = syn::parse::<T>(meta.tokens.into());
+            let parse_res = syn::parse2::<T>(meta.tokens);
 
             match parse_res {
                 Ok(input) => return Ok(input),
