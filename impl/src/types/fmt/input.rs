@@ -26,9 +26,7 @@ impl Debug for StructFormatInput {
 impl Parse for StructFormatInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lit_str: LitStr = input.parse()?;
-
-        let comma: Option<Comma> = input.parse()?;
-        if comma.is_none() && !input.is_empty() {
+        if !input.is_empty() {
             return Err(syn::Error::new(
                 input.span(),
                 "unexpected token after string literal",
@@ -98,9 +96,7 @@ impl Debug for VariantFormatInput {
 impl Parse for VariantFormatInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lit_str: LitStr = input.parse()?;
-
-        let comma: Option<Comma> = input.parse()?;
-        if comma.is_none() && !input.is_empty() {
+        if !input.is_empty() {
             return Err(syn::Error::new(
                 input.span(),
                 "unexpected token after string literal",
@@ -193,16 +189,6 @@ mod tests {
     }
 
     #[test]
-    fn struct_format_input_parses_lit_str_with_trailing_comma() {
-        let empty_stream_res =
-            syn::parse2::<StructFormatInput>(quote! { "format string", });
-        let format_input = empty_stream_res.expect(
-            "stream `\"format string\",` could not be parsed as StructFormatInput",
-        );
-        assert_eq!(format_input.lit_str.value(), "format string");
-    }
-
-    #[test]
     fn enum_variant_format_input_requires_initial_lit_str() {
         let empty_stream_res = syn::parse2::<VariantFormatInput>(quote! {});
         let err = empty_stream_res.expect_err(
@@ -232,15 +218,5 @@ mod tests {
             "stream `\"format string\" 5` was parsed successfully as VariantFormatInput",
         );
         assert_eq!(err.to_string(), "unexpected token after string literal");
-    }
-
-    #[test]
-    fn enum_variant_format_input_parses_lit_str_with_trailing_comma() {
-        let empty_stream_res =
-            syn::parse2::<VariantFormatInput>(quote! { "format string", });
-        let format_input = empty_stream_res.expect(
-            "stream `\"format string\",` could not be parsed as VariantFormatInput",
-        );
-        assert_eq!(format_input.lit_str.value(), "format string");
     }
 }
