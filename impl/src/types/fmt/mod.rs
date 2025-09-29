@@ -12,6 +12,8 @@ use syn::{
 mod input;
 use input::{StructFormatInput, VariantFormatInput};
 
+use super::util;
+
 pub(crate) enum TypeData {
     Struct {
         display_input: StructFormatInput,
@@ -28,14 +30,16 @@ pub(crate) enum TypeData {
 impl TypeData {
     pub(crate) fn new(
         input_data: Data,
-        attrs: Vec<Attribute>,
+        attrs: &mut Vec<Attribute>,
         ident_span: Span,
     ) -> syn::Result<Self> {
+        let default_display_attr = util::take_display_attr(attrs);
+
         match input_data {
             Data::Struct(_) => {
                 drop(input_data);
 
-                let display_attr = Self::get_display_attr(attrs)
+                let display_attr = default_display_attr
                     .ok_or_else(|| syn::Error::new(ident_span, "missing `display` attribute for struct with `#[derive(Error)]`"))?;
                 let display_input = Self::get_format_input(display_attr)?;
 
@@ -49,7 +53,6 @@ impl TypeData {
                     return Ok(Self::EmptyEnum);
                 }
 
-                let default_display_attr = Self::get_display_attr(attrs);
                 let variant_display_inputs =
                     Self::collect_valid_variant_states(variants)?;
 
@@ -109,7 +112,7 @@ impl TypeData {
 
             _ => {
                 drop(input_data);
-                drop(attrs);
+                drop(default_display_attr);
 
                 Err(syn::Error::new(
                     ident_span,
@@ -117,12 +120,6 @@ impl TypeData {
                 ))
             }
         }
-    }
-
-    fn get_display_attr(attrs: Vec<Attribute>) -> Option<Attribute> {
-        attrs
-            .into_iter()
-            .find(|attr| attr.path().is_ident("display"))
     }
 
     fn get_format_input<T>(display_attr: Attribute) -> syn::Result<T>
@@ -172,8 +169,12 @@ impl TypeData {
         let mut variant_states_iter = variants.into_iter().map(|variant| {
             let variant_span = variant.span();
 
+            let mut attrs = variant.attrs;
+            let display_attr = util::take_display_attr(&mut attrs);
+            drop(attrs);
+
             use VariantState as VS;
-            match Self::get_display_attr(variant.attrs) {
+            match display_attr {
                 None => VS::None(variant_span),
                 Some(attr) => match Self::get_format_input(attr) {
                     Ok(input) => VS::Valid(VariantData {
@@ -341,12 +342,12 @@ mod tests {
 
     #[test]
     fn struct_data_requires_display_attr() {
-        let derive_input =
+        let mut derive_input =
             syn::parse2::<DeriveInput>(quote! { struct CustomType; })
                 .expect("malformed test stream");
         let err = TypeData::new(
             derive_input.data,
-            derive_input.attrs,
+            &mut derive_input.attrs,
             derive_input.ident.span(),
         )
         .expect_err(
@@ -360,13 +361,13 @@ mod tests {
 
     #[test]
     fn struct_data_requires_list_form_for_display_attr() {
-        let derive_input = syn::parse2::<DeriveInput>(
+        let mut derive_input = syn::parse2::<DeriveInput>(
             quote! { #[display] struct CustomType; },
         )
         .expect("malformed test stream");
         let err = TypeData::new(
             derive_input.data,
-            derive_input.attrs,
+            &mut derive_input.attrs,
             derive_input.ident.span(),
         )
         .expect_err(
@@ -380,12 +381,12 @@ mod tests {
 
     #[test]
     fn enum_data_requires_display_attr() {
-        let derive_input =
+        let mut derive_input =
             syn::parse2::<DeriveInput>(quote! { enum CustomType { One, Two } })
                 .expect("malformed test stream");
         let err = TypeData::new(
             derive_input.data,
-            derive_input.attrs,
+            &mut derive_input.attrs,
             derive_input.ident.span(),
         )
         .expect_err(
@@ -399,13 +400,13 @@ mod tests {
 
     #[test]
     fn enum_data_requires_list_form_for_display_attr() {
-        let derive_input = syn::parse2::<DeriveInput>(
+        let mut derive_input = syn::parse2::<DeriveInput>(
             quote! { #[display] enum CustomType { One, Two } },
         )
         .expect("malformed test stream");
         let err = TypeData::new(
             derive_input.data,
-            derive_input.attrs,
+            &mut derive_input.attrs,
             derive_input.ident.span(),
         )
         .expect_err(
@@ -419,7 +420,7 @@ mod tests {
 
     #[test]
     fn enum_data_requires_list_form_for_display_attr_on_every_variant() {
-        let derive_input = syn::parse2::<DeriveInput>(quote! {
+        let mut derive_input = syn::parse2::<DeriveInput>(quote! {
             enum CustomType {
                 #[display]
                 One,
@@ -430,7 +431,7 @@ mod tests {
         .expect("malformed test stream");
         let err = TypeData::new(
             derive_input.data,
-            derive_input.attrs,
+            &mut derive_input.attrs,
             derive_input.ident.span(),
         )
         .expect_err(
@@ -444,13 +445,13 @@ mod tests {
 
     #[test]
     fn union_type_is_rejected() {
-        let derive_input = syn::parse2::<DeriveInput>(
+        let mut derive_input = syn::parse2::<DeriveInput>(
             quote! { union CustomType { f1: u32, f2: f32 } },
         )
         .expect("malformed test stream");
         let err = TypeData::new(
             derive_input.data,
-            derive_input.attrs,
+            &mut derive_input.attrs,
             derive_input.ident.span(),
         )
         .expect_err(
