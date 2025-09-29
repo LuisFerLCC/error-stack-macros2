@@ -9,7 +9,7 @@ use syn::{
     punctuated::Punctuated, spanned::Spanned, token::Comma,
 };
 
-pub(crate) mod input;
+mod input;
 use input::{StructFormatInput, VariantFormatInput};
 
 pub(crate) enum TypeData {
@@ -278,7 +278,7 @@ impl ToTokens for TypeData {
     }
 }
 
-pub(crate) enum VariantState<E> {
+enum VariantState<E> {
     Valid(VariantData),
     Invalid(E),
     None(Span),
@@ -296,7 +296,7 @@ impl<E> VariantState<E> {
     }
 }
 
-pub(crate) type ValidVariantState = VariantState<Infallible>;
+type ValidVariantState = VariantState<Infallible>;
 
 pub(crate) struct VariantData {
     ident: Ident,
