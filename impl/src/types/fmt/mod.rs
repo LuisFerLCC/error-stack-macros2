@@ -171,13 +171,13 @@ impl TypeData {
 
             let mut attrs = variant.attrs;
             let display_attr = util::take_display_attr(&mut attrs);
-            drop(attrs);
 
             use VariantState as VS;
             match display_attr {
                 None => VS::None(variant_span),
                 Some(attr) => match Self::get_format_input(attr) {
                     Ok(input) => VS::Valid(VariantData {
+                        other_attrs: attrs,
                         ident: variant.ident,
                         fields: variant.fields,
                         display_input: input,
@@ -300,6 +300,7 @@ impl<E> VariantState<E> {
 type ValidVariantState = VariantState<Infallible>;
 
 pub(crate) struct VariantData {
+    other_attrs: Vec<Attribute>,
     ident: Ident,
     fields: Fields,
     display_input: VariantFormatInput,
@@ -307,13 +308,16 @@ pub(crate) struct VariantData {
 
 impl ToTokens for VariantData {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let ident = &self.ident;
-        let fields = &self.fields;
-        let display_input = &self.display_input;
+        let Self {
+            other_attrs,
+            ident,
+            fields,
+            display_input,
+        } = self;
 
         let field_idents = fields.iter().enumerate().map(|(i, field)| {
             field.ident.clone().unwrap_or_else(|| {
-                syn::Ident::new(&format!("_field{}", i), field.span())
+                Ident::new(&format!("_field{}", i), field.span())
             })
         });
 
@@ -327,6 +331,7 @@ impl ToTokens for VariantData {
         };
 
         tokens.extend(quote! {
+            #(#other_attrs)*
             Self::#ident #field_tokens => ::core::write!(f, #display_input)
         })
     }
