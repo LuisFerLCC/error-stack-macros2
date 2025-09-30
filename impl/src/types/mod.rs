@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{ToTokens, quote};
 use syn::{
-    Attribute, DeriveInput, Ident,
+    Attribute, DeriveInput, Generics, Ident,
     parse::{Parse, ParseStream},
 };
 
@@ -9,10 +9,12 @@ mod fmt;
 use fmt::TypeData;
 
 mod util;
+use util::ReducedGenerics;
 
 pub(crate) struct ErrorStackDeriveInput {
     other_attrs: Vec<Attribute>,
     ident: Ident,
+    generics: Generics,
     display_data: TypeData,
 }
 
@@ -20,7 +22,6 @@ impl Parse for ErrorStackDeriveInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let derive_input: DeriveInput = input.parse()?;
 
-        drop(derive_input.generics);
         drop(derive_input.vis);
 
         let mut attrs = derive_input.attrs;
@@ -33,9 +34,16 @@ impl Parse for ErrorStackDeriveInput {
 
         let ident = derive_input.ident;
 
+        let mut generics = derive_input.generics;
+        generics
+            .params
+            .iter_mut()
+            .for_each(util::remove_generic_default);
+
         Ok(Self {
             other_attrs: attrs,
             ident,
+            generics,
             display_data,
         })
     }
@@ -46,18 +54,32 @@ impl ToTokens for ErrorStackDeriveInput {
         let Self {
             other_attrs,
             ident,
+            generics,
             display_data,
         } = self;
 
+        let mut error_trait_generics = generics.clone();
+        error_trait_generics
+            .params
+            .iter_mut()
+            .for_each(util::add_debug_trait_bound);
+
+        let type_generics: ReducedGenerics = generics
+            .params
+            .iter()
+            .cloned()
+            .map(util::generic_reduced_to_ident)
+            .collect();
+
         tokens.extend(quote! {
             #(#other_attrs)*
-            impl ::core::fmt::Display for #ident {
+            impl #generics ::core::fmt::Display for #ident #type_generics {
                 fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
                     #display_data
                 }
             }
 
-            impl ::core::error::Error for #ident {}
+            impl #error_trait_generics ::core::error::Error for #ident #type_generics {}
         });
     }
 }
