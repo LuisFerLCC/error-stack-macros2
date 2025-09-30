@@ -58,6 +58,8 @@ impl ToTokens for ErrorStackDeriveInput {
             display_data,
         } = self;
 
+        let where_clause = &generics.where_clause;
+
         let mut error_trait_generics = generics.clone();
         error_trait_generics
             .params
@@ -73,13 +75,18 @@ impl ToTokens for ErrorStackDeriveInput {
 
         tokens.extend(quote! {
             #(#other_attrs)*
-            impl #generics ::core::fmt::Display for #ident #type_generics {
+            impl #generics ::core::fmt::Display for #ident #type_generics
+            #where_clause
+            {
                 fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
                     #display_data
                 }
             }
 
-            impl #error_trait_generics ::core::error::Error for #ident #type_generics {}
+            impl #error_trait_generics ::core::error::Error for #ident #type_generics
+            #where_clause
+            {
+            }
         });
     }
 }
