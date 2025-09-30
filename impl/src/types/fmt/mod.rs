@@ -73,7 +73,7 @@ impl TypeData {
 
                 let (valid_variants, none_spans) =
                     Self::separate_existing_variant_states(
-                        variant_display_inputs.into_iter(),
+                        variant_display_inputs,
                     );
 
                 if valid_variants.is_empty() {
@@ -168,13 +168,22 @@ impl TypeData {
     ) -> Result<Vec<ValidVariantState>, syn::Error> {
         let mut variant_states_iter = variants.into_iter().map(|variant| {
             let variant_span = variant.span();
+            drop(variant.discriminant);
 
             let mut attrs = variant.attrs;
             let display_attr = util::take_display_attr(&mut attrs);
 
             use VariantState as VS;
             match display_attr {
-                None => VS::None(variant_span),
+                None => {
+                    drop(variant.fields);
+                    drop(variant.ident);
+                    drop(attrs);
+                    drop(display_attr);
+
+                    VS::None(variant_span)
+                }
+
                 Some(attr) => match Self::get_format_input(attr) {
                     Ok(input) => VS::Valid(VariantData {
                         other_attrs: attrs,
@@ -201,6 +210,7 @@ impl TypeData {
                         err.combine(err2);
                     }
 
+                    drop(variant_states_iter);
                     return Err(err);
                 }
             }
@@ -211,12 +221,9 @@ impl TypeData {
         Ok(vec)
     }
 
-    fn separate_existing_variant_states<I>(
-        states_iter: I,
-    ) -> (Vec<VariantData>, Vec<Span>)
-    where
-        I: Iterator<Item = ValidVariantState>,
-    {
+    fn separate_existing_variant_states(
+        states_iter: Vec<VariantState<Infallible>>,
+    ) -> (Vec<VariantData>, Vec<Span>) {
         let mut valid_variants = Vec::new();
         let mut none_spans = Vec::new();
 
