@@ -1,6 +1,6 @@
 [package]
 name = "error-stack-macros2"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["LuisFerLCC"]
 edition = "2024"
 rust-version = "1.90.0"
@@ -31,8 +31,8 @@ panic = "warn"
 
 [dependencies]
 proc-macro2 = "1.0.101"
-quote = "1.0.40"
-regex = "1.11.2"
+quote = "1.0.41"
+regex = "1.11.3"
 syn = { version = "2.0.106", features = [] }
 
 [dev-dependencies]

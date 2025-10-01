@@ -39,7 +39,7 @@ jobs:
       - name: Get crate version
         id: get_crate_info
         run: |
-          CRATE_VERSION=$(grep '^version = ' Cargo.toml | head -n 1 | cut -d '"' -f 2)
+          CRATE_VERSION=$(grep '^version = ' impl/Cargo.toml | head -n 1 | cut -d '"' -f 2)
           echo "Crate error-stack-macros2"
           echo "Crate Version: $CRATE_VERSION"
           echo "crate_version=$CRATE_VERSION" >> "$GITHUB_OUTPUT"

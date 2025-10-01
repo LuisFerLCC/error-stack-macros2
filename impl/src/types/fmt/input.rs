@@ -25,10 +25,8 @@ impl Debug for StructFormatInput {
 
 impl Parse for StructFormatInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut lit_str: LitStr = input.parse()?;
-
-        let comma: Option<Comma> = input.parse()?;
-        if comma.is_none() && !input.is_empty() {
+        let lit_str: LitStr = input.parse()?;
+        if !input.is_empty() {
             return Err(syn::Error::new(
                 input.span(),
                 "unexpected token after string literal",
@@ -40,9 +38,14 @@ impl Parse for StructFormatInput {
         let mut fmt_string = lit_str.value();
         let mut args = Punctuated::new();
 
+        let lit_str_span = lit_str.span();
+        drop(lit_str);
+
         while let Some(captures) = regex.captures(&fmt_string) {
             #[allow(clippy::unwrap_used)]
             let group = captures.get(1).unwrap();
+            drop(captures);
+
             let inline_arg_str = group.as_str();
 
             let arg_tokens = if inline_arg_str.parse::<usize>().is_ok() {
@@ -53,13 +56,16 @@ impl Parse for StructFormatInput {
                 quote! { &self.#ident }
             };
 
-            let arg_expr = syn::parse(arg_tokens.into())?;
+            let arg_expr = syn::parse2(arg_tokens)?;
             args.push(arg_expr);
 
             fmt_string.replace_range(group.range(), "");
         }
 
-        lit_str = LitStr::new(&fmt_string, lit_str.span());
+        drop(regex);
+
+        let lit_str = LitStr::new(&fmt_string, lit_str_span);
+        drop(fmt_string);
 
         Ok(Self { lit_str, args })
     }
@@ -75,24 +81,22 @@ impl ToTokens for StructFormatInput {
     }
 }
 
-pub(crate) struct EnumVariantFormatInput {
+pub(crate) struct VariantFormatInput {
     lit_str: LitStr,
     args: Punctuated<Ident, Comma>,
 }
 
 #[cfg(test)]
-impl Debug for EnumVariantFormatInput {
+impl Debug for VariantFormatInput {
     fn fmt(&self, _: &mut Formatter<'_>) -> fmt::Result {
         Ok(())
     }
 }
 
-impl Parse for EnumVariantFormatInput {
+impl Parse for VariantFormatInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut lit_str: LitStr = input.parse()?;
-
-        let comma: Option<Comma> = input.parse()?;
-        if comma.is_none() && !input.is_empty() {
+        let lit_str: LitStr = input.parse()?;
+        if !input.is_empty() {
             return Err(syn::Error::new(
                 input.span(),
                 "unexpected token after string literal",
@@ -104,9 +108,14 @@ impl Parse for EnumVariantFormatInput {
         let mut fmt_string = lit_str.value();
         let mut args = Punctuated::new();
 
+        let lit_str_span = lit_str.span();
+        drop(lit_str);
+
         while let Some(captures) = regex.captures(&fmt_string) {
             #[allow(clippy::unwrap_used)]
             let group = captures.get(1).unwrap();
+            drop(captures);
+
             let inline_arg_str = group.as_str();
 
             let ident_str = if inline_arg_str.parse::<usize>().is_ok() {
@@ -121,13 +130,16 @@ impl Parse for EnumVariantFormatInput {
             fmt_string.replace_range(group.range(), "");
         }
 
-        lit_str = LitStr::new(&fmt_string, lit_str.span());
+        drop(regex);
+
+        let lit_str = LitStr::new(&fmt_string, lit_str_span);
+        drop(fmt_string);
 
         Ok(Self { lit_str, args })
     }
 }
 
-impl ToTokens for EnumVariantFormatInput {
+impl ToTokens for VariantFormatInput {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let Self { lit_str, args } = self;
 
@@ -177,20 +189,10 @@ mod tests {
     }
 
     #[test]
-    fn struct_format_input_parses_lit_str_with_trailing_comma() {
-        let empty_stream_res =
-            syn::parse2::<StructFormatInput>(quote! { "format string", });
-        let format_input = empty_stream_res.expect(
-            "stream `\"format string\",` could not be parsed as StructFormatInput",
-        );
-        assert_eq!(format_input.lit_str.value(), "format string");
-    }
-
-    #[test]
     fn enum_variant_format_input_requires_initial_lit_str() {
-        let empty_stream_res = syn::parse2::<EnumVariantFormatInput>(quote! {});
+        let empty_stream_res = syn::parse2::<VariantFormatInput>(quote! {});
         let err = empty_stream_res.expect_err(
-            "empty stream was parsed successfully as EnumVariantFormatInput",
+            "empty stream was parsed successfully as VariantFormatInput",
         );
         assert_eq!(
             err.to_string(),
@@ -201,9 +203,9 @@ mod tests {
     #[test]
     fn enum_variant_format_input_requires_initial_arg_to_be_lit_str() {
         let empty_stream_res =
-            syn::parse2::<EnumVariantFormatInput>(quote! { true });
+            syn::parse2::<VariantFormatInput>(quote! { true });
         let err = empty_stream_res.expect_err(
-            "stream `true` was parsed successfully as EnumVariantFormatInput",
+            "stream `true` was parsed successfully as VariantFormatInput",
         );
         assert_eq!(err.to_string(), "expected string literal");
     }
@@ -211,20 +213,10 @@ mod tests {
     #[test]
     fn enum_variant_format_input_rejects_unexpected_token_after_lit_str() {
         let empty_stream_res =
-            syn::parse2::<EnumVariantFormatInput>(quote! { "format string" 5 });
+            syn::parse2::<VariantFormatInput>(quote! { "format string" 5 });
         let err = empty_stream_res.expect_err(
-            "stream `\"format string\" 5` was parsed successfully as EnumVariantFormatInput",
+            "stream `\"format string\" 5` was parsed successfully as VariantFormatInput",
         );
         assert_eq!(err.to_string(), "unexpected token after string literal");
-    }
-
-    #[test]
-    fn enum_variant_format_input_parses_lit_str_with_trailing_comma() {
-        let empty_stream_res =
-            syn::parse2::<EnumVariantFormatInput>(quote! { "format string", });
-        let format_input = empty_stream_res.expect(
-            "stream `\"format string\",` could not be parsed as EnumVariantFormatInput",
-        );
-        assert_eq!(format_input.lit_str.value(), "format string");
     }
 }
