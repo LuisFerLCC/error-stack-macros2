@@ -1,55 +1,41 @@
-# `error-stack-macros2` v0.1.0
+# `error-stack-macros2` v0.2.0
 
-The very first development version of `error-stack-macros2` is finally here!
+We have a new development version of `error-stack-macros2`!
 
-## Features
+## Fixes
 
-This version (0.1.0) offers a derive macro for the [`Error`](https://doc.rust-lang.org/stable/core/error/trait.Error.html) trait which encourages the best practices for defining [`error-stack`](https://crates.io/crates/error-stack) context types.
+This version (0.2.0) adds support for generics and external attributes to the [`impl_error_stack`](https://docs.rs/error-stack-macros2/latest/error_stack_macros2/derive.Error.html) macro.
 
-Here's an example. This code:
-
-```rust
-use std::{
-    error::Error,
-    fmt::{self, Display, Formatter},
-};
-
-#[derive(Debug)]
-pub enum CreditCardError {
-    InvalidInput(String),
-    Other,
-}
-
-impl Display for CreditCardError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let msg = match self {
-            Self::InvalidInput(_) => "credit card not found",
-            Self::Other => "failed to retrieve credit card",
-        };
-
-        f.write_str(msg)
-    }
-}
-
-impl Error for CreditCardError {}
-```
-
-...can now be reduced to this code:
+This means that types like this:
 
 ```rust
 use error_stack_macros2::Error;
 
 #[derive(Debug, Error)]
-pub enum CreditCardError {
-    #[display("credit card not found")]
-    InvalidInput(String),
-
-    #[display("failed to retrieve credit card")]
-    Other,
+#[display("failed to retrieve credit card")]
+enum CreditCardError<T>
+where
+	T: Display
+{
+	InvalidInput(T),
+	Other
 }
+
+#[derive(Debug, Error)]
+#[display("invalid card string")]
+#[allow(non_camel_case_types)]
+struct parseCardError;
 ```
 
-This new release also means that we will now be listening to feedback and accepting new features (macros, obviously). We are also now committed to maintaining this macro going forward and keeping our dependencies up to date.
+...can now compile properly.
+
+## Performance
+
+The entire source code has been refactored to eliminate unnecessary allocations, cloning, and double iterator consumptions. This should make compile times faster and reduce memory usage.
+
+## Dependencies
+
+As promised, all dependencies have been updated to their latest versions, which in this case means performance improvements and bug fixes.
 
 ## Previous release notes
 
