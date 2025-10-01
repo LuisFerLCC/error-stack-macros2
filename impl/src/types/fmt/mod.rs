@@ -228,6 +228,8 @@ impl ToTokens for VariantData {
 #[cfg(test)]
 #[allow(clippy::expect_used)]
 mod tests {
+    use crate::ErrorStackDeriveInput;
+
     use super::*;
 
     use quote::quote;
@@ -235,8 +237,8 @@ mod tests {
 
     #[test]
     fn struct_data_requires_display_attr() {
-        let mut derive_input =
-            syn::parse2::<DeriveInput>(quote! { struct CustomType; })
+        let mut derive_input: DeriveInput =
+            syn::parse2(quote! { struct CustomType; })
                 .expect("malformed test stream");
         let err = TypeData::new(
             derive_input.data,
@@ -254,10 +256,9 @@ mod tests {
 
     #[test]
     fn struct_data_requires_list_form_for_display_attr() {
-        let mut derive_input = syn::parse2::<DeriveInput>(
-            quote! { #[display] struct CustomType; },
-        )
-        .expect("malformed test stream");
+        let mut derive_input: DeriveInput =
+            syn::parse2(quote! { #[display] struct CustomType; })
+                .expect("malformed test stream");
         let err = TypeData::new(
             derive_input.data,
             &mut derive_input.attrs,
@@ -274,8 +275,8 @@ mod tests {
 
     #[test]
     fn enum_data_requires_display_attr() {
-        let mut derive_input =
-            syn::parse2::<DeriveInput>(quote! { enum CustomType { One, Two } })
+        let mut derive_input: DeriveInput =
+            syn::parse2(quote! { enum CustomType { One, Two } })
                 .expect("malformed test stream");
         let err = TypeData::new(
             derive_input.data,
@@ -293,10 +294,9 @@ mod tests {
 
     #[test]
     fn enum_data_requires_list_form_for_display_attr() {
-        let mut derive_input = syn::parse2::<DeriveInput>(
-            quote! { #[display] enum CustomType { One, Two } },
-        )
-        .expect("malformed test stream");
+        let mut derive_input: DeriveInput =
+            syn::parse2(quote! { #[display] enum CustomType { One, Two } })
+                .expect("malformed test stream");
         let err = TypeData::new(
             derive_input.data,
             &mut derive_input.attrs,
@@ -313,7 +313,7 @@ mod tests {
 
     #[test]
     fn enum_data_requires_list_form_for_display_attr_on_every_variant() {
-        let mut derive_input = syn::parse2::<DeriveInput>(quote! {
+        let mut derive_input: DeriveInput = syn::parse2(quote! {
             enum CustomType {
                 #[display]
                 One,
@@ -338,10 +338,9 @@ mod tests {
 
     #[test]
     fn union_type_is_rejected() {
-        let mut derive_input = syn::parse2::<DeriveInput>(
-            quote! { union CustomType { f1: u32, f2: f32 } },
-        )
-        .expect("malformed test stream");
+        let mut derive_input: DeriveInput =
+            syn::parse2(quote! { union CustomType { f1: u32, f2: f32 } })
+                .expect("malformed test stream");
         let err = TypeData::new(
             derive_input.data,
             &mut derive_input.attrs,
@@ -353,6 +352,28 @@ mod tests {
         assert_eq!(
             err.to_string(),
             "`#[derive(Error)]` only supports structs and enums"
+        );
+    }
+
+    #[test]
+    fn variant_works_with_other_attrs() {
+        let derive_input: ErrorStackDeriveInput = syn::parse2(quote! {
+            #[display("custom type")]
+            enum CustomType {
+                #[cfg(true)]
+                One { inner: u8 },
+
+                #[cfg(true)]
+                #[display("custom type two {0}.{1}.{2}.{3}")]
+                Two(u8, u8, u8, u8),
+            }
+        })
+        .expect("malformed test stream");
+
+        let output = quote! { #derive_input };
+        assert_eq!(
+            output.to_string(),
+            "# [allow (single_use_lifetimes)] impl :: core :: fmt :: Display for CustomType { fn fmt (& self , f : & mut :: core :: fmt :: Formatter < '_ >) -> :: core :: fmt :: Result { match & self { # [cfg (true)] Self :: Two (_field0 , _field1 , _field2 , _field3) => :: core :: write ! (f , \"custom type two {}.{}.{}.{}\" , _field0 , _field1 , _field2 , _field3) , _ => :: core :: write ! (f , \"custom type\") } } } # [allow (single_use_lifetimes)] impl :: core :: error :: Error for CustomType { }"
         );
     }
 }
