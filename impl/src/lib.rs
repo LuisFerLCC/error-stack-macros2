@@ -107,6 +107,8 @@
 //! [`error-stack`]: https://crates.io/crates/error-stack
 //! [documentation]: https://docs.rs/error-stack-macros2
 
+#![deny(unstable_features)]
+
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse_macro_input;

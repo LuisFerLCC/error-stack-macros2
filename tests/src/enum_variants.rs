@@ -109,7 +109,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(dead_code)]
     fn tuple_variant_works_with_interpolation_of_all_fields() {
         #[derive(Debug, Error)]
         enum EnumType {

@@ -4,7 +4,7 @@ use std::fmt::{self, Debug, Formatter};
 
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{ToTokens, quote};
-use syn::{Attribute, Data, Fields, Ident, LitStr, spanned::Spanned};
+use syn::{Attribute, Data, Fields, Ident, LitStr, spanned::Spanned as _};
 
 mod input;
 use input::{StructFormatInput, VariantFormatInput};
@@ -21,6 +21,7 @@ pub(crate) enum TypeData {
         variant_display_inputs: Vec<VariantData>,
     },
 
+    // TODO: also use for structs with never (!) field
     EmptyEnum,
 }
 
@@ -61,7 +62,7 @@ impl TypeData {
                         default_display_input,
                         variant_display_inputs: variant_display_inputs
                             .into_iter()
-                            .filter_map(|state| state.data())
+                            .filter_map(VariantState::data)
                             .collect(),
                     });
                 };
@@ -85,7 +86,7 @@ impl TypeData {
                 if !none_spans.is_empty() {
                     drop(valid_variants);
 
-                    #[allow(clippy::unwrap_used)]
+                    #[expect(clippy::unwrap_used, reason="this call to `Iterator::reduce()` returns `Some` because `none_spans` is not empty")]
                     return Err(none_spans
                         .into_iter()
                         .map(|span| {
@@ -107,7 +108,7 @@ impl TypeData {
                 })
             }
 
-            _ => {
+            Data::Union(_) => {
                 drop(input_data);
                 drop(default_display_attr);
 
@@ -129,16 +130,16 @@ impl Debug for TypeData {
 
 impl ToTokens for TypeData {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
-        match self {
-            Self::Struct { display_input } => {
+        match *self {
+            Self::Struct { ref display_input } => {
                 tokens.extend(quote! {
                     ::core::write!(f, #display_input)
                 });
             }
 
             Self::Enum {
-                default_display_input,
-                variant_display_inputs,
+                ref default_display_input,
+                ref variant_display_inputs,
             } => {
                 let branches = variant_display_inputs
                     .iter()
@@ -159,6 +160,7 @@ impl ToTokens for TypeData {
             }
 
             Self::EmptyEnum => {
+                // TODO: fully qualify macro path
                 tokens.extend(quote! {
                     unreachable!("attempted to format an empty enum")
                 });
@@ -175,12 +177,11 @@ enum VariantState<E> {
 
 impl<E> VariantState<E> {
     fn data(self) -> Option<VariantData> {
-        match self {
-            Self::Valid(data) => Some(data),
-            _ => {
-                drop(self);
-                None
-            }
+        if let Self::Valid(data) = self {
+            Some(data)
+        } else {
+            drop(self);
+            None
         }
     }
 }
@@ -197,19 +198,19 @@ pub(crate) struct VariantData {
 impl ToTokens for VariantData {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let Self {
-            other_attrs,
-            ident,
-            fields,
-            display_input,
-        } = self;
+            ref other_attrs,
+            ref ident,
+            ref fields,
+            ref display_input,
+        } = *self;
 
         let field_idents = fields.iter().enumerate().map(|(i, field)| {
             field.ident.clone().unwrap_or_else(|| {
-                Ident::new(&format!("_field{}", i), field.span())
+                Ident::new(&format!("_field{i}"), field.span())
             })
         });
 
-        let field_tokens = match fields {
+        let field_tokens = match *fields {
             Fields::Named(_) => quote! { { #(#field_idents),* } },
             Fields::Unnamed(_) => quote! { ( #(#field_idents),* ) },
             Fields::Unit => {
@@ -226,7 +227,10 @@ impl ToTokens for VariantData {
 }
 
 #[cfg(test)]
-#[allow(clippy::expect_used)]
+#[expect(
+    clippy::expect_used,
+    reason = "this is a test module with calls to `.expect()`"
+)]
 mod tests {
     use crate::ErrorStackDeriveInput;
 

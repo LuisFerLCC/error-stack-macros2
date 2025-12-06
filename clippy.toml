@@ -1,0 +1,9 @@
+absolute-paths-max-segments = 3
+max-fn-params-bools = 2
+max-struct-bools = 2
+single-char-binding-names-threshold = 3
+too-many-arguments-threshold = 3
+
+disallowed-methods = [
+    { path = "std::process::exit", reason = "this performs a dirty exit and prevents the macro from returning a `TokenStream`" },
+]
