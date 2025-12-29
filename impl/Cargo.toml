@@ -30,7 +30,7 @@ expect_used = "warn"
 panic = "warn"
 
 [dependencies]
-proc-macro2 = "1.0.103"
+proc-macro2 = "1.0.104"
 quote = "1.0.42"
 regex = "1.12.2"
 syn = { version = "2.0.111", features = [] }
