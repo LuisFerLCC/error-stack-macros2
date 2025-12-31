@@ -126,7 +126,12 @@ mod tests {
         assert_eq!(test_val.to_string(), "inner = 8");
     }
 
+    // FIXME: #[expect(redundant_lifetimes)] on type fails to remove warning
     #[test]
+    #[expect(
+        redundant_lifetimes,
+        reason = "this test requires a where clause with both lifetime and trait bounds"
+    )]
     fn named_field_struct_works_with_where_clause() {
         const STRING: &str = "t ref";
 
@@ -145,7 +150,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "this test requires `TupleStructType`'s fields to exist, even though they won't be read"
+    )]
     fn tuple_struct_works_without_interpolation() {
         #[derive(Debug, Error)]
         #[display("tuple struct")]
@@ -156,7 +164,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "this test requires `TupleStructType`to have multiple fields, even though not all of them will be read"
+    )]
     fn tuple_struct_works_with_interpolation_of_some_fields() {
         #[derive(Debug, Error)]
         #[display("tuple struct: point with y value {1}")]
@@ -167,7 +178,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(dead_code)]
     fn tuple_struct_works_with_interpolation_of_all_fields() {
         #[derive(Debug, Error)]
         #[display(

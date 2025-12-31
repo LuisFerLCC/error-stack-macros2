@@ -52,11 +52,11 @@ impl Parse for ErrorStackDeriveInput {
 impl ToTokens for ErrorStackDeriveInput {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let Self {
-            other_attrs,
-            ident,
-            generics,
-            display_data,
-        } = self;
+            ref other_attrs,
+            ref ident,
+            ref generics,
+            ref display_data,
+        } = *self;
 
         let where_clause = &generics.where_clause;
 
@@ -73,6 +73,7 @@ impl ToTokens for ErrorStackDeriveInput {
             .map(util::generic_reduced_to_ident)
             .collect();
 
+        // TODO: move `other_attrs` down to avoid overwriting users' attrs
         tokens.extend(quote! {
             #(#other_attrs)*
             #[allow(single_use_lifetimes)]
@@ -95,7 +96,10 @@ impl ToTokens for ErrorStackDeriveInput {
 }
 
 #[cfg(test)]
-#[allow(clippy::expect_used)]
+#[expect(
+    clippy::expect_used,
+    reason = "this is a test module with calls to `.expect()`"
+)]
 mod tests {
     use quote::quote;
 

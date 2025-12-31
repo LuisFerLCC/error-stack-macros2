@@ -25,7 +25,7 @@ impl Debug for StructFormatInput {
 
 impl Parse for StructFormatInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lit_str: LitStr = input.parse()?;
+        let input_lit_str: LitStr = input.parse()?;
         if !input.is_empty() {
             return Err(syn::Error::new(
                 input.span(),
@@ -33,16 +33,22 @@ impl Parse for StructFormatInput {
             ));
         }
 
-        #[allow(clippy::unwrap_used)]
+        #[expect(
+            clippy::unwrap_used,
+            reason = "this pattern is valid and the regex is under the size limit"
+        )]
         let regex = Regex::new(r"\{(\w+)(?::.+?)?\}").unwrap();
-        let mut fmt_string = lit_str.value();
+        let mut fmt_string = input_lit_str.value();
         let mut args = Punctuated::new();
 
-        let lit_str_span = lit_str.span();
-        drop(lit_str);
+        let lit_str_span = input_lit_str.span();
+        drop(input_lit_str);
 
         while let Some(captures) = regex.captures(&fmt_string) {
-            #[allow(clippy::unwrap_used)]
+            #[expect(
+                clippy::unwrap_used,
+                reason = "the first capture group is guaranteed to appear"
+            )]
             let group = captures.get(1).unwrap();
             drop(captures);
 
@@ -73,7 +79,10 @@ impl Parse for StructFormatInput {
 
 impl ToTokens for StructFormatInput {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let Self { lit_str, args } = self;
+        let Self {
+            ref lit_str,
+            ref args,
+        } = *self;
 
         tokens.extend(quote! {
             #lit_str, #args
@@ -95,7 +104,7 @@ impl Debug for VariantFormatInput {
 
 impl Parse for VariantFormatInput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lit_str: LitStr = input.parse()?;
+        let input_lit_str: LitStr = input.parse()?;
         if !input.is_empty() {
             return Err(syn::Error::new(
                 input.span(),
@@ -103,23 +112,29 @@ impl Parse for VariantFormatInput {
             ));
         }
 
-        #[allow(clippy::unwrap_used)]
+        #[expect(
+            clippy::unwrap_used,
+            reason = "this pattern is valid and the regex is under the size limit"
+        )]
         let regex = Regex::new(r"\{(\w+)(?::.+?)?\}").unwrap();
-        let mut fmt_string = lit_str.value();
+        let mut fmt_string = input_lit_str.value();
         let mut args = Punctuated::new();
 
-        let lit_str_span = lit_str.span();
-        drop(lit_str);
+        let lit_str_span = input_lit_str.span();
+        drop(input_lit_str);
 
         while let Some(captures) = regex.captures(&fmt_string) {
-            #[allow(clippy::unwrap_used)]
+            #[expect(
+                clippy::unwrap_used,
+                reason = "the first capture group is guaranteed to appear"
+            )]
             let group = captures.get(1).unwrap();
             drop(captures);
 
             let inline_arg_str = group.as_str();
 
             let ident_str = if inline_arg_str.parse::<usize>().is_ok() {
-                &format!("_field{}", inline_arg_str)
+                &format!("_field{inline_arg_str}")
             } else {
                 inline_arg_str
             };
@@ -141,7 +156,10 @@ impl Parse for VariantFormatInput {
 
 impl ToTokens for VariantFormatInput {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
-        let Self { lit_str, args } = self;
+        let Self {
+            ref lit_str,
+            ref args,
+        } = *self;
 
         tokens.extend(quote! {
             #lit_str, #args
@@ -150,7 +168,10 @@ impl ToTokens for VariantFormatInput {
 }
 
 #[cfg(test)]
-#[allow(clippy::expect_used)]
+#[expect(
+    clippy::expect_used,
+    reason = "this is a test module with calls to `.expect()`"
+)]
 mod tests {
     use super::*;
 

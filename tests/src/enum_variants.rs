@@ -17,6 +17,7 @@ mod tests {
     fn named_field_variant_works_without_interpolation() {
         #[derive(Debug, Error)]
         enum EnumType {
+            // TODO: rename all variants in all `EnumType`s
             #[display("named field variant")]
             NamedFieldVariant {
                 _length: usize,
@@ -109,7 +110,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(dead_code)]
     fn tuple_variant_works_with_interpolation_of_all_fields() {
         #[derive(Debug, Error)]
         enum EnumType {

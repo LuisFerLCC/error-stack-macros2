@@ -3,10 +3,10 @@ use std::convert::Infallible;
 use proc_macro2::Span;
 use syn::{
     Attribute, Meta, Variant, parse::Parse, punctuated::Punctuated,
-    spanned::Spanned, token::Comma,
+    spanned::Spanned as _, token::Comma,
 };
 
-use super::{ValidVariantState, VariantData, VariantState};
+use super::{super::util, ValidVariantState, VariantData, VariantState};
 
 pub(crate) fn get_format_input<T>(display_attr: Attribute) -> syn::Result<T>
 where
@@ -53,13 +53,14 @@ pub(crate) fn collect_valid_variant_states(
     variants: Punctuated<Variant, Comma>,
 ) -> Result<Vec<ValidVariantState>, syn::Error> {
     let mut variant_states_iter = variants.into_iter().map(|variant| {
+        use VariantState as VS;
+
         let variant_span = variant.span();
         drop(variant.discriminant);
 
         let mut attrs = variant.attrs;
-        let display_attr = crate::types::util::take_display_attr(&mut attrs);
+        let display_attr = util::take_display_attr(&mut attrs);
 
-        use VariantState as VS;
         match display_attr {
             None => {
                 drop(variant.fields);
