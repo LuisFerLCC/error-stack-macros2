@@ -171,9 +171,8 @@ impl ToTokens for TypeData {
             }
 
             Self::EmptyType => {
-                // TODO: fully qualify macro path
                 tokens.extend(quote! {
-                    unreachable!("attempted to format an empty type")
+                    ::core::unreachable!("attempted to format an empty type")
                 });
             }
         }
@@ -259,7 +258,7 @@ mod tests {
         let output = quote! { #derive_input };
         assert_eq!(
             output.to_string(),
-            "# [allow (single_use_lifetimes)] impl :: core :: fmt :: Display for EmptyStructType { fn fmt (& self , f : & mut :: core :: fmt :: Formatter < '_ >) -> :: core :: fmt :: Result { unreachable ! (\"attempted to format an empty type\") } } # [allow (single_use_lifetimes)] impl :: core :: error :: Error for EmptyStructType { }"
+            "# [allow (single_use_lifetimes)] impl :: core :: fmt :: Display for EmptyStructType { fn fmt (& self , f : & mut :: core :: fmt :: Formatter < '_ >) -> :: core :: fmt :: Result { :: core :: unreachable ! (\"attempted to format an empty type\") } } # [allow (single_use_lifetimes)] impl :: core :: error :: Error for EmptyStructType { }"
         );
     }
 
