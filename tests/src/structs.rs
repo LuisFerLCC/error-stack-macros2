@@ -126,7 +126,7 @@ mod tests {
         assert_eq!(test_val.to_string(), "inner = 8");
     }
 
-    // FIXME: #[expect(redundant_lifetimes)] on type fails to remove warning
+    // TODO: move #[expect(redundant_lifetimes)] to type when fixed
     #[test]
     #[expect(
         redundant_lifetimes,
