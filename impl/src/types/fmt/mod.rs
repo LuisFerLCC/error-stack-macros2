@@ -4,7 +4,9 @@ use std::fmt::{self, Debug, Formatter};
 
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{ToTokens, quote};
-use syn::{Attribute, Data, Fields, Ident, LitStr, spanned::Spanned as _};
+use syn::{
+    Attribute, Data, Fields, Ident, LitStr, Type, spanned::Spanned as _,
+};
 
 mod input;
 use input::{StructFormatInput, VariantFormatInput};
@@ -21,8 +23,7 @@ pub(crate) enum TypeData {
         variant_display_inputs: Vec<VariantData>,
     },
 
-    // TODO: also use for structs with never (!) field
-    EmptyEnum,
+    EmptyType,
 }
 
 impl TypeData {
@@ -34,8 +35,18 @@ impl TypeData {
         let default_display_attr = super::util::take_display_attr(attrs);
 
         match input_data {
-            Data::Struct(_) => {
-                drop(input_data);
+            Data::Struct(data) => {
+                let has_never_type = data
+                    .fields
+                    .iter()
+                    .any(|field| matches!(field.ty, Type::Never(_)));
+
+                drop(data);
+
+                if has_never_type {
+                    drop(default_display_attr);
+                    return Ok(Self::EmptyType);
+                }
 
                 let display_attr = default_display_attr
                     .ok_or_else(|| syn::Error::new(ident_span, "missing `display` attribute for struct with `#[derive(Error)]`"))?;
@@ -48,7 +59,7 @@ impl TypeData {
                 let variants = data.variants;
                 if variants.is_empty() {
                     drop(variants);
-                    return Ok(Self::EmptyEnum);
+                    return Ok(Self::EmptyType);
                 }
 
                 let variant_display_inputs =
@@ -159,10 +170,10 @@ impl ToTokens for TypeData {
                 });
             }
 
-            Self::EmptyEnum => {
+            Self::EmptyType => {
                 // TODO: fully qualify macro path
                 tokens.extend(quote! {
-                    unreachable!("attempted to format an empty enum")
+                    unreachable!("attempted to format an empty type")
                 });
             }
         }
@@ -238,6 +249,19 @@ mod tests {
 
     use quote::quote;
     use syn::DeriveInput;
+
+    #[test]
+    fn empty_struct_works_without_display_attr() {
+        let derive_input: ErrorStackDeriveInput =
+            syn::parse2(quote! { struct EmptyStructType(!); })
+                .expect("malformed test stream");
+
+        let output = quote! { #derive_input };
+        assert_eq!(
+            output.to_string(),
+            "# [allow (single_use_lifetimes)] impl :: core :: fmt :: Display for EmptyStructType { fn fmt (& self , f : & mut :: core :: fmt :: Formatter < '_ >) -> :: core :: fmt :: Result { unreachable ! (\"attempted to format an empty type\") } } # [allow (single_use_lifetimes)] impl :: core :: error :: Error for EmptyStructType { }"
+        );
+    }
 
     #[test]
     fn struct_data_requires_display_attr() {
