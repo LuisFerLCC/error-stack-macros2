@@ -15,10 +15,10 @@ categories = ["development-tools", "rust-patterns"]
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1.0.104"
-quote = "1.0.42"
+proc-macro2 = "1.0.105"
+quote = "1.0.43"
 regex = "1.12.2"
-syn = { version = "2.0.112", features = [] }
+syn = { version = "2.0.114", features = [] }
 
 [dev-dependencies]
 error-stack = "0.6.0"
