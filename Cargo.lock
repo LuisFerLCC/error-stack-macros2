@@ -29,7 +29,7 @@ dependencies = [
 
 [[package]]
 name = "error-stack-macros2"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "error-stack",
  "proc-macro2",
@@ -40,7 +40,7 @@ dependencies = [
 
 [[package]]
 name = "error-stack-macros2-tests"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "error-stack",
  "error-stack-macros2",
