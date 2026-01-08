@@ -73,10 +73,9 @@ impl ToTokens for ErrorStackDeriveInput {
             .map(util::generic_reduced_to_ident)
             .collect();
 
-        // TODO: move `other_attrs` down to avoid overwriting users' attrs
         tokens.extend(quote! {
-            #(#other_attrs)*
             #[allow(single_use_lifetimes)]
+            #(#other_attrs)*
             impl #generics ::core::fmt::Display for #ident #type_generics
             #where_clause
             {
@@ -85,8 +84,8 @@ impl ToTokens for ErrorStackDeriveInput {
                 }
             }
 
-            #(#other_attrs)*
             #[allow(single_use_lifetimes)]
+            #(#other_attrs)*
             impl #error_trait_generics ::core::error::Error for #ident #type_generics
             #where_clause
             {
@@ -118,7 +117,7 @@ mod tests {
         let output = quote! { #input };
         assert_eq!(
             output.to_string(),
-            "# [test_attribute] # [test_attribute_2] # [allow (single_use_lifetimes)] impl :: core :: fmt :: Display for CustomType { fn fmt (& self , f : & mut :: core :: fmt :: Formatter < '_ >) -> :: core :: fmt :: Result { :: core :: write ! (f , \"custom type\" ,) } } # [test_attribute] # [test_attribute_2] # [allow (single_use_lifetimes)] impl :: core :: error :: Error for CustomType { }"
+            "# [allow (single_use_lifetimes)] # [test_attribute] # [test_attribute_2] impl :: core :: fmt :: Display for CustomType { fn fmt (& self , f : & mut :: core :: fmt :: Formatter < '_ >) -> :: core :: fmt :: Result { :: core :: write ! (f , \"custom type\" ,) } } # [allow (single_use_lifetimes)] # [test_attribute] # [test_attribute_2] impl :: core :: error :: Error for CustomType { }"
         );
     }
 

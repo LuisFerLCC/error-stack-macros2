@@ -18,7 +18,7 @@ mod tests {
     #[test]
     #[expect(
         dead_code,
-        reason = "this test requires `EnumType::TupleVariant`'s fields to exist, even though they won't be read"
+        reason = "this test requires `EnumType::Tuple`'s fields to exist, even though they won't be read"
     )]
     fn enum_works_with_display_attr_default() {
         #[derive(Debug, Error)]
