@@ -7,10 +7,10 @@ mod tests {
         #[derive(Debug, Error)]
         enum EnumType {
             #[display("unit variant")]
-            UnitVariant,
+            Unit,
         }
 
-        assert_eq!(EnumType::UnitVariant.to_string(), "unit variant");
+        assert_eq!(EnumType::Unit.to_string(), "unit variant");
     }
 
     #[test]
@@ -18,14 +18,14 @@ mod tests {
         #[derive(Debug, Error)]
         enum EnumType {
             #[display("named field variant")]
-            NamedFieldVariant {
+            NamedFields {
                 _length: usize,
                 _is_ascii: bool,
                 _inner: String,
             },
         }
 
-        let test_val = EnumType::NamedFieldVariant {
+        let test_val = EnumType::NamedFields {
             _length: 5,
             _is_ascii: true,
             _inner: String::from("hello"),
@@ -38,14 +38,14 @@ mod tests {
         #[derive(Debug, Error)]
         enum EnumType {
             #[display("named field variant: {inner:?} has {length} characters")]
-            NamedFieldVariant {
+            NamedFields {
                 length: usize,
                 _is_ascii: bool,
                 inner: String,
             },
         }
 
-        let test_val = EnumType::NamedFieldVariant {
+        let test_val = EnumType::NamedFields {
             length: 5,
             _is_ascii: true,
             inner: String::from("hello"),
@@ -63,14 +63,14 @@ mod tests {
             #[display(
                 "named field variant: {inner:?} has {length} characters and is ascii={is_ascii}"
             )]
-            NamedFieldVariant {
+            NamedFields {
                 length: usize,
                 is_ascii: bool,
                 inner: String,
             },
         }
 
-        let test_val = EnumType::NamedFieldVariant {
+        let test_val = EnumType::NamedFields {
             length: 5,
             is_ascii: true,
             inner: String::from("hello"),
@@ -86,10 +86,10 @@ mod tests {
         #[derive(Debug, Error)]
         enum EnumType {
             #[display("tuple variant")]
-            TupleVariant(isize, isize, isize),
+            Tuple(isize, isize, isize),
         }
 
-        let test_val = EnumType::TupleVariant(5, 10, 15);
+        let test_val = EnumType::Tuple(5, 10, 15);
         assert_eq!(test_val.to_string(), "tuple variant");
     }
 
@@ -98,10 +98,10 @@ mod tests {
         #[derive(Debug, Error)]
         enum EnumType {
             #[display("tuple variant: point with y value {1}")]
-            TupleVariant(isize, isize, isize),
+            Tuple(isize, isize, isize),
         }
 
-        let test_val = EnumType::TupleVariant(5, 10, 15);
+        let test_val = EnumType::Tuple(5, 10, 15);
         assert_eq!(
             test_val.to_string(),
             "tuple variant: point with y value 10"
@@ -109,17 +109,16 @@ mod tests {
     }
 
     #[test]
-    #[allow(dead_code)]
     fn tuple_variant_works_with_interpolation_of_all_fields() {
         #[derive(Debug, Error)]
         enum EnumType {
             #[display(
                 "tuple variant: point {2} units in front of the origin, and with x and y coords ({0}, {1})"
             )]
-            TupleVariant(isize, isize, isize),
+            Tuple(isize, isize, isize),
         }
 
-        let test_val = EnumType::TupleVariant(5, 10, 15);
+        let test_val = EnumType::Tuple(5, 10, 15);
         assert_eq!(
             test_val.to_string(),
             "tuple variant: point 15 units in front of the origin, and with x and y coords (5, 10)"

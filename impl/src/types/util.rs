@@ -4,7 +4,7 @@ use syn::{
     Attribute, GenericParam, Ident, Lifetime, Path, TraitBound,
     TraitBoundModifier, TypeParamBound,
     punctuated::Punctuated,
-    spanned::Spanned,
+    spanned::Spanned as _,
     token::{Colon, Comma},
 };
 
@@ -16,9 +16,9 @@ pub(crate) enum ReducedGenericParam {
 impl ToTokens for ReducedGenericParam {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         use ReducedGenericParam as RGP;
-        match self {
-            RGP::ConstOrType(ident) => tokens.extend(quote! { #ident }),
-            RGP::Lifetime(lifetime) => tokens.extend(quote! { #lifetime }),
+        match *self {
+            RGP::ConstOrType(ref ident) => tokens.extend(quote! { #ident }),
+            RGP::Lifetime(ref lifetime) => tokens.extend(quote! { #lifetime }),
         }
     }
 }
@@ -57,18 +57,18 @@ pub(crate) fn take_display_attr(
 
 pub(crate) fn remove_generic_default(param: &mut GenericParam) {
     use GenericParam as GP;
-    match param {
-        GP::Const(const_p) => {
+    match *param {
+        GP::Const(ref mut const_p) => {
             const_p.eq_token = None;
             const_p.default = None;
         }
 
-        GP::Type(type_p) => {
+        GP::Type(ref mut type_p) => {
             type_p.eq_token = None;
             type_p.default = None;
         }
 
-        _ => {}
+        GP::Lifetime(_) => {}
     }
 }
 
@@ -105,8 +105,8 @@ pub(crate) fn generic_reduced_to_ident(
 
 pub(crate) fn add_debug_trait_bound(param: &mut GenericParam) {
     use GenericParam as GP;
-    if let GP::Type(type_p) = param {
-        #[allow(clippy::unwrap_used)]
+    if let GP::Type(ref mut type_p) = *param {
+        #[expect(clippy::unwrap_used, reason = "this `TokenStream` is valid")]
         let trait_path: Path =
             syn::parse2(quote! { ::core::fmt::Debug }).unwrap();
 

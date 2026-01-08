@@ -52,11 +52,11 @@ impl Parse for ErrorStackDeriveInput {
 impl ToTokens for ErrorStackDeriveInput {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let Self {
-            other_attrs,
-            ident,
-            generics,
-            display_data,
-        } = self;
+            ref other_attrs,
+            ref ident,
+            ref generics,
+            ref display_data,
+        } = *self;
 
         let where_clause = &generics.where_clause;
 
@@ -74,8 +74,8 @@ impl ToTokens for ErrorStackDeriveInput {
             .collect();
 
         tokens.extend(quote! {
-            #(#other_attrs)*
             #[allow(single_use_lifetimes)]
+            #(#other_attrs)*
             impl #generics ::core::fmt::Display for #ident #type_generics
             #where_clause
             {
@@ -84,8 +84,8 @@ impl ToTokens for ErrorStackDeriveInput {
                 }
             }
 
-            #(#other_attrs)*
             #[allow(single_use_lifetimes)]
+            #(#other_attrs)*
             impl #error_trait_generics ::core::error::Error for #ident #type_generics
             #where_clause
             {
@@ -95,7 +95,10 @@ impl ToTokens for ErrorStackDeriveInput {
 }
 
 #[cfg(test)]
-#[allow(clippy::expect_used)]
+#[expect(
+    clippy::expect_used,
+    reason = "this is a test module with calls to `.expect()`"
+)]
 mod tests {
     use quote::quote;
 
@@ -114,7 +117,7 @@ mod tests {
         let output = quote! { #input };
         assert_eq!(
             output.to_string(),
-            "# [test_attribute] # [test_attribute_2] # [allow (single_use_lifetimes)] impl :: core :: fmt :: Display for CustomType { fn fmt (& self , f : & mut :: core :: fmt :: Formatter < '_ >) -> :: core :: fmt :: Result { :: core :: write ! (f , \"custom type\" ,) } } # [test_attribute] # [test_attribute_2] # [allow (single_use_lifetimes)] impl :: core :: error :: Error for CustomType { }"
+            "# [allow (single_use_lifetimes)] # [test_attribute] # [test_attribute_2] impl :: core :: fmt :: Display for CustomType { fn fmt (& self , f : & mut :: core :: fmt :: Formatter < '_ >) -> :: core :: fmt :: Result { :: core :: write ! (f , \"custom type\" ,) } } # [allow (single_use_lifetimes)] # [test_attribute] # [test_attribute_2] impl :: core :: error :: Error for CustomType { }"
         );
     }
 

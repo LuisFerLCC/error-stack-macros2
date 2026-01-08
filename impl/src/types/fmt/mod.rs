@@ -4,7 +4,9 @@ use std::fmt::{self, Debug, Formatter};
 
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::{ToTokens, quote};
-use syn::{Attribute, Data, Fields, Ident, LitStr, spanned::Spanned};
+use syn::{
+    Attribute, Data, Fields, Ident, LitStr, Type, spanned::Spanned as _,
+};
 
 mod input;
 use input::{StructFormatInput, VariantFormatInput};
@@ -21,7 +23,7 @@ pub(crate) enum TypeData {
         variant_display_inputs: Vec<VariantData>,
     },
 
-    EmptyEnum,
+    EmptyType,
 }
 
 impl TypeData {
@@ -33,8 +35,18 @@ impl TypeData {
         let default_display_attr = super::util::take_display_attr(attrs);
 
         match input_data {
-            Data::Struct(_) => {
-                drop(input_data);
+            Data::Struct(data) => {
+                let has_never_type = data
+                    .fields
+                    .iter()
+                    .any(|field| matches!(field.ty, Type::Never(_)));
+
+                drop(data);
+
+                if has_never_type {
+                    drop(default_display_attr);
+                    return Ok(Self::EmptyType);
+                }
 
                 let display_attr = default_display_attr
                     .ok_or_else(|| syn::Error::new(ident_span, "missing `display` attribute for struct with `#[derive(Error)]`"))?;
@@ -47,7 +59,7 @@ impl TypeData {
                 let variants = data.variants;
                 if variants.is_empty() {
                     drop(variants);
-                    return Ok(Self::EmptyEnum);
+                    return Ok(Self::EmptyType);
                 }
 
                 let variant_display_inputs =
@@ -61,7 +73,7 @@ impl TypeData {
                         default_display_input,
                         variant_display_inputs: variant_display_inputs
                             .into_iter()
-                            .filter_map(|state| state.data())
+                            .filter_map(VariantState::data)
                             .collect(),
                     });
                 };
@@ -85,7 +97,7 @@ impl TypeData {
                 if !none_spans.is_empty() {
                     drop(valid_variants);
 
-                    #[allow(clippy::unwrap_used)]
+                    #[expect(clippy::unwrap_used, reason="this call to `Iterator::reduce()` returns `Some` because `none_spans` is not empty")]
                     return Err(none_spans
                         .into_iter()
                         .map(|span| {
@@ -107,7 +119,7 @@ impl TypeData {
                 })
             }
 
-            _ => {
+            Data::Union(_) => {
                 drop(input_data);
                 drop(default_display_attr);
 
@@ -129,16 +141,16 @@ impl Debug for TypeData {
 
 impl ToTokens for TypeData {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
-        match self {
-            Self::Struct { display_input } => {
+        match *self {
+            Self::Struct { ref display_input } => {
                 tokens.extend(quote! {
                     ::core::write!(f, #display_input)
                 });
             }
 
             Self::Enum {
-                default_display_input,
-                variant_display_inputs,
+                ref default_display_input,
+                ref variant_display_inputs,
             } => {
                 let branches = variant_display_inputs
                     .iter()
@@ -158,9 +170,9 @@ impl ToTokens for TypeData {
                 });
             }
 
-            Self::EmptyEnum => {
+            Self::EmptyType => {
                 tokens.extend(quote! {
-                    unreachable!("attempted to format an empty enum")
+                    ::core::unreachable!("attempted to format an empty type")
                 });
             }
         }
@@ -175,12 +187,11 @@ enum VariantState<E> {
 
 impl<E> VariantState<E> {
     fn data(self) -> Option<VariantData> {
-        match self {
-            Self::Valid(data) => Some(data),
-            _ => {
-                drop(self);
-                None
-            }
+        if let Self::Valid(data) = self {
+            Some(data)
+        } else {
+            drop(self);
+            None
         }
     }
 }
@@ -197,19 +208,19 @@ pub(crate) struct VariantData {
 impl ToTokens for VariantData {
     fn to_tokens(&self, tokens: &mut TokenStream2) {
         let Self {
-            other_attrs,
-            ident,
-            fields,
-            display_input,
-        } = self;
+            ref other_attrs,
+            ref ident,
+            ref fields,
+            ref display_input,
+        } = *self;
 
         let field_idents = fields.iter().enumerate().map(|(i, field)| {
             field.ident.clone().unwrap_or_else(|| {
-                Ident::new(&format!("_field{}", i), field.span())
+                Ident::new(&format!("_field{i}"), field.span())
             })
         });
 
-        let field_tokens = match fields {
+        let field_tokens = match *fields {
             Fields::Named(_) => quote! { { #(#field_idents),* } },
             Fields::Unnamed(_) => quote! { ( #(#field_idents),* ) },
             Fields::Unit => {
@@ -226,7 +237,10 @@ impl ToTokens for VariantData {
 }
 
 #[cfg(test)]
-#[allow(clippy::expect_used)]
+#[expect(
+    clippy::expect_used,
+    reason = "this is a test module with calls to `.expect()`"
+)]
 mod tests {
     use crate::ErrorStackDeriveInput;
 
@@ -234,6 +248,19 @@ mod tests {
 
     use quote::quote;
     use syn::DeriveInput;
+
+    #[test]
+    fn empty_struct_works_without_display_attr() {
+        let derive_input: ErrorStackDeriveInput =
+            syn::parse2(quote! { struct EmptyStructType(!); })
+                .expect("malformed test stream");
+
+        let output = quote! { #derive_input };
+        assert_eq!(
+            output.to_string(),
+            "# [allow (single_use_lifetimes)] impl :: core :: fmt :: Display for EmptyStructType { fn fmt (& self , f : & mut :: core :: fmt :: Formatter < '_ >) -> :: core :: fmt :: Result { :: core :: unreachable ! (\"attempted to format an empty type\") } } # [allow (single_use_lifetimes)] impl :: core :: error :: Error for EmptyStructType { }"
+        );
+    }
 
     #[test]
     fn struct_data_requires_display_attr() {

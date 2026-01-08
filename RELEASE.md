@@ -1,41 +1,19 @@
-# `error-stack-macros2` v0.2.0
+# `error-stack-macros2` v0.2.1
 
-We have a new development version of `error-stack-macros2`!
+The second development version of `error-stack-macros2` receives its first patch!
 
 ## Fixes
 
-This version (0.2.0) adds support for generics and external attributes to the [`impl_error_stack`](https://docs.rs/error-stack-macros2/latest/error_stack_macros2/derive.Error.html) macro.
-
-This means that types like this:
-
-```rust
-use error_stack_macros2::Error;
-
-#[derive(Debug, Error)]
-#[display("failed to retrieve credit card")]
-enum CreditCardError<T>
-where
-	T: Display
-{
-	InvalidInput(T),
-	Other
-}
-
-#[derive(Debug, Error)]
-#[display("invalid card string")]
-#[allow(non_camel_case_types)]
-struct parseCardError;
-```
-
-...can now compile properly.
+- The `#[allow(single_use_lifetimes)]` attribute included with the generated `impl` blocks is now located **above** user-provided attributes. This means that this attribute, as well as any other attributes that we might add in the future, will no longer override attributes that you specify for your type alongside the `error-stack-macros2` macro.
+- The path for the generated call to the `unreachable!` macro is now fully qualified, meaning it can no longer accidentally call a different macro in scope with the same name.
 
 ## Performance
 
-The entire source code has been refactored to eliminate unnecessary allocations, cloning, and double iterator consumptions. This should make compile times faster and reduce memory usage.
+- Structs with at least one field with type _never_ (`!`) can now ignore the `display` attribute, as such a struct can never be instantiated.
 
 ## Dependencies
 
-As promised, all dependencies have been updated to their latest versions, which in this case means performance improvements and bug fixes.
+All dependencies have been updated to their latest versions, which in this case means performance improvements and bug fixes.
 
 ## Previous release notes
 
