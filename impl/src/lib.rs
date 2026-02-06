@@ -186,6 +186,8 @@ use types::ErrorStackDeriveInput;
 /// [`Report`]: https://docs.rs/error-stack/latest/error_stack/struct.Report.html
 /// [`Display`]: core::fmt::Display
 /// [`thiserror`]: https://crates.io/crates/thiserror
+// TODO: remove #[inline] when fixed
+#[inline]
 #[proc_macro_derive(Error, attributes(display))]
 pub fn impl_error_stack(input: TokenStream) -> TokenStream {
     let derive_input = parse_macro_input!(input as ErrorStackDeriveInput);
