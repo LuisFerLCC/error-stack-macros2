@@ -1,9 +1,9 @@
 [package]
 name = "error-stack-macros2"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["LuisFerLCC"]
 edition = "2024"
-rust-version = "1.90.0"
+rust-version = "1.92.0"
 description = "Community-made procedural macros for error-stack."
 readme = "../README.md"
 repository = "https://github.com/LuisFerLCC/error-stack-macros2"
@@ -15,8 +15,8 @@ categories = ["development-tools", "rust-patterns"]
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1.0.105"
-quote = "1.0.43"
+proc-macro2 = "1.0.106"
+quote = "1.0.44"
 regex = "1.12.2"
 syn = { version = "2.0.114", features = [] }
 

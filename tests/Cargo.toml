@@ -1,9 +1,9 @@
 [package]
 name = "error-stack-macros2-tests"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["LuisFerLCC"]
 edition = "2024"
-rust-version = "1.90.0"
+rust-version = "1.92.0"
 publish = false
 
 [dependencies]
